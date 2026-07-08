@@ -72,7 +72,9 @@ class HomePage extends ConsumerWidget {
 
     String? title;
     if (mode == 'blank') {
+      if (!context.mounted) return;
       final ctl = TextEditingController();
+      // ignore: use_build_context_synchronously
       title = await showDialog<String>(
         context: context,
         builder: (_) => AlertDialog(
@@ -91,6 +93,7 @@ class HomePage extends ConsumerWidget {
     } else {
       final svc = TemplateService();
       final templates = await svc.listTemplates();
+      if (!context.mounted) return;
       final picked = await showDialog<Template>(
         context: context,
         builder: (_) => SimpleDialog(

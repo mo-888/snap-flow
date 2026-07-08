@@ -128,6 +128,7 @@ class ManualDetailPage extends ConsumerWidget {
     final repo = await ref.read(manualRepositoryProvider.future);
     final m = await repo.getManual(manualId);
     if (m == null) return;
+    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
