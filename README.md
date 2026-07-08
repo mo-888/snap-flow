@@ -112,17 +112,23 @@ flutter analyze       # 静态分析
 
 ## 📦 CI/CD
 
-提交到 `master` 或打 tag 自动触发 GitHub Actions：
+提交到 `main` 自动触发 GitHub Actions 三平台构建：
 
-- `flutter pub get` + `dart run build_runner build`
-- `flutter analyze`（静态分析必须通过）
-- `flutter test`（测试必须通过）
-- `flutter build apk --release`（构建 Release APK）
-- APK 作为 Artifact 上传，可下载
+| 平台 | 产物 | 说明 |
+|------|------|------|
+| Android | `snapflow-android.apk` | Release APK，可直接安装 |
+| iOS | `snapflow-ios-unsigned.zip` | 未签名 `.app`（无开发者账号，需自签 / sideload） |
+| Linux | `snapflow-linux-x64.zip` | x64 bundle |
 
-打 tag `v*` 时额外构建 production 签名包（需配置 keystore secrets）。
+### 下载方式
+
+- **main 分支**：构建成功后自动发布到 [Releases 的 `latest` 预发布](https://github.com/mo-888/snap-flow/releases/tag/latest)，每次提交覆盖更新。
+- **正式版**：打 tag 触发，如 `git tag v0.1.0 && git push --tags` → 生成带 changelog 的正式 Release。
+- **临时产物**：每次 run 的 Artifacts 也可在 Actions 页下载（保留 30 天）。
 
 详见 [`.github/workflows/build.yml`](.github/workflows/build.yml)。
+
+> ⚠️ iOS 因无 Apple 开发者账号，CI 产出未签名 `.app`，仅作构建验证。要在真机运行需自备签名（个人签名 / AltStore / Sideloadly 等）。
 
 ## 📄 License
 
