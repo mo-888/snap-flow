@@ -55,6 +55,7 @@ class ManualDetailPage extends ConsumerWidget {
           return ReorderableListView.builder(
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             itemCount: manual.steps.length,
+            // ignore: deprecated_member_use
             onReorder: (oldIdx, newIdx) => _onReorder(ref, manual, oldIdx, newIdx),
             itemBuilder: (_, i) => StepTile(
               key: ValueKey(manual.steps[i].id),
