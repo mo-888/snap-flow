@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>SnapFlow · 拍下流程，步步留痕</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --color-primary:#0D9488;
+  --color-on-primary:#FFFFFF;
+  --color-secondary:#14B8A6;
+  --color-accent:#EA580C;
+  --color-background:#F0FDFA;
+  --color-foreground:#134E4A;
+  --color-muted:#E8F1F4;
+  --color-border:#99F6E4;
+  --color-destructive:#DC2626;
+  --color-ring:#0D9488;
+  --color-surface:#FFFFFF;
+  --color-surface-2:#ECFDF5;
+  --text-primary:#0F172A;
+  --text-secondary:#475569;
+  --text-muted:#64748B;
+  --shadow-1:0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-2:0 4px 6px -1px rgba(15,23,42,.08), 0 2px 4px -2px rgba(15,23,42,.06);
+  --shadow-3:0 10px 25px -5px rgba(15,23,42,.10), 0 4px 10px -3px rgba(15,23,42,.05);
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:16px;
+  --radius-xl:24px;
+  --radius-full:9999px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+[data-theme="dark"]{
+  --color-background:#0B1F1D;
+  --color-foreground:#E6FFFA;
+  --color-muted:#134E4A;
+  --color-border:#0F766E;
+  --color-surface:#0F2A28;
+  --color-surface-2:#103B38;
+  --text-primary:#F1F5F9;
+  --text-secondary:#CBD5E1;
+  --text-muted:#94A3B8;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 4px 6px -1px rgba(0,0,0,.5);
+  --shadow-3:0 10px 25px -5px rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--color-background);color:var(--text-primary);-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5;touch-action:manipulation}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit;font-size:16px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--color-ring);outline-offset:2px;border-radius:6px}
+
+.app{min-height:100dvh;display:grid;place-items:center;background:linear-gradient(135deg,#CCFBF1 0%,#F0FDFA 50%,#FFF7ED 100%);padding:24px}
+[data-theme="dark"] .app{background:linear-gradient(135deg,#0B1F1D 0%,#0F2A28 50%,#1C1917 100%)}
+.device{
+  width:100%;max-width:420px;height:min(900px,calc(100dvh - 48px));
+  background:var(--color-background);border-radius:36px;overflow:hidden;
+  box-shadow:0 25px 50px -12px rgba(15,23,42,.25),0 0 0 8px #1f2937,0 0 0 9px #374151;
+  position:relative;display:flex;flex-direction:column;
+}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:120px;height:28px;background:#0f172a;border-radius:0 0 18px 18px;z-index:50;display:flex;align-items:center;justify-content:center;gap:6px}
+.notch::before{content:"";width:8px;height:8px;background:#1f2937;border-radius:50%}
+.notch::after{content:"";width:6px;height:6px;background:#0ea5e9;border-radius:50%;opacity:.6}
+.status-bar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 4px;font-size:13px;font-weight:600;color:var(--text-primary);flex-shrink:0}
+.status-bar .right{display:flex;align-items:center;gap:6px}
+
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:relative;padding-bottom:96px}
+.screen::-webkit-scrollbar{width:0}
+.screen[hidden]{display:none}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:8px 20px 12px;flex-shrink:0}
+.topbar h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em}
+.topbar .spacer{flex:1}
+.icon-btn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--text-primary);transition:background .15s var(--ease),transform .15s var(--ease);position:relative}
+.icon-btn:hover{background:var(--color-muted)}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn .badge{position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 4px;background:var(--color-accent);color:#fff;font-size:10px;font-weight:700;border-radius:9999px;display:grid;place-items:center}
+.icon-btn svg{width:22px;height:22px;stroke-width:2}
+
+.search{padding:0 20px 12px;flex-shrink:0}
+.search-input{width:100%;height:44px;background:var(--color-surface);border:1.5px solid var(--color-border);border-radius:14px;padding:0 16px 0 44px;display:flex;align-items:center;position:relative;transition:border-color .15s var(--ease)}
+.search-input:focus-within{border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.search-input svg{position:absolute;left:14px;width:18px;height:18px;color:var(--text-muted);stroke-width:2}
+.search-input input{border:none;background:transparent;outline:none;width:100%;height:100%;color:var(--text-primary)}
+
+.chips{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;height:32px;padding:0 14px;border-radius:9999px;background:var(--color-surface);border:1.5px solid var(--color-border);font-size:13px;font-weight:600;color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px;transition:all .15s var(--ease);white-space:nowrap}
+.chip.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.chip:hover:not(.active){background:var(--color-muted)}
+
+.list{padding:0 20px;display:flex;flex-direction:column;gap:12px}
+.manual-card{background:var(--color-surface);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow-1);transition:transform .15s var(--ease),box-shadow .15s var(--ease);cursor:pointer;border:1px solid transparent}
+.manual-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-2);border-color:var(--color-border)}
+.manual-card:active{transform:scale(.98)}
+.manual-card .cover{width:64px;height:64px;border-radius:12px;flex-shrink:0;background-size:cover;background-position:center;position:relative;overflow:hidden;background-color:var(--color-muted)}
+.manual-card .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.3))}
+.manual-card .cover .badge-count{position:absolute;bottom:4px;right:4px;z-index:1;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;backdrop-filter:blur(4px)}
+.manual-card .body{flex:1;min-width:0}
+.manual-card h3{font-size:15px;font-weight:700;margin:0 0 4px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.manual-card .meta{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px}
+.manual-card .meta .dot{width:3px;height:3px;border-radius:50%;background:var(--text-muted)}
+.manual-card .star{color:#FBBF24}
+
+.empty{text-align:center;padding:60px 32px;color:var(--text-muted)}
+.empty svg{width:64px;height:64px;margin-bottom:12px;opacity:.5}
+.empty h3{font-size:16px;font-weight:700;margin:0 0 6px;color:var(--text-secondary)}
+
+.fab{position:absolute;right:20px;bottom:24px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-secondary) 100%);color:#fff;display:grid;place-items:center;box-shadow:0 10px 25px -5px rgba(13,148,136,.5);z-index:20;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.fab:hover{transform:scale(1.05);box-shadow:0 15px 30px -5px rgba(13,148,136,.6)}
+.fab:active{transform:scale(.95)}
+.fab svg{width:28px;height:28px;stroke-width:2.5}
+
+.detail-header{position:sticky;top:0;z-index:10;background:var(--color-background);padding:8px 20px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--color-border);backdrop-filter:blur(8px)}
+.detail-header h1{font-size:18px;font-weight:800;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-list{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.step-card{background:var(--color-surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-1);border:1px solid var(--color-border);transition:box-shadow .15s var(--ease)}
+.step-card:hover{box-shadow:var(--shadow-2)}
+.step-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;min-height:64px}
+.step-num{width:32px;height:32px;border-radius:10px;background:var(--color-primary);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0}
+.step-num.empty{background:var(--color-muted);color:var(--text-muted)}
+.step-info{flex:1;min-width:0}
+.step-info h3{font-size:15px;font-weight:700;margin:0 0 2px;color:var(--text-primary);display:flex;align-items:center;gap:6px}
+.step-info h3 .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.step-info .meta{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px}
+.chev{width:18px;height:18px;color:var(--text-muted);transition:transform .2s var(--ease);flex-shrink:0}
+.step-card.expanded .chev{transform:rotate(180deg)}
+.step-body{padding:0 16px 16px;display:none}
+.step-card.expanded .step-body{display:block}
+.image-strip{display:flex;gap:8px;overflow-x:auto;padding:8px 0 12px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}
+.image-strip::-webkit-scrollbar{display:none}
+.thumb{width:88px;height:88px;border-radius:12px;flex-shrink:0;background-size:cover;background-position:center;background-color:var(--color-muted);position:relative;cursor:pointer;overflow:hidden;transition:transform .15s var(--ease)}
+.thumb:hover{transform:scale(1.05)}
+.thumb:active{transform:scale(.95)}
+.thumb .more{position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:18px;font-weight:800;backdrop-filter:blur(2px)}
+.add-thumb{width:88px;height:88px;border-radius:12px;flex-shrink:0;border:2px dashed var(--color-border);display:grid;place-items:center;color:var(--text-muted);cursor:pointer;transition:all .15s var(--ease)}
+.add-thumb:hover{border-color:var(--color-primary);color:var(--color-primary);background:var(--color-surface-2)}
+.add-thumb svg{width:28px;height:28px}
+.step-note{font-size:14px;color:var(--text-primary);line-height:1.6;background:var(--color-surface-2);padding:12px 14px;border-radius:12px;border-left:3px solid var(--color-primary);white-space:pre-wrap;word-break:break-word}
+.step-note.empty{color:var(--text-muted);font-style:italic;border-left-color:var(--color-border)}
+.step-actions{display:flex;gap:8px;margin-top:12px}
+.step-actions button{flex:1;height:36px;border-radius:10px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--text-secondary);transition:all .15s var(--ease)}
+.step-actions button:hover{background:var(--color-muted);color:var(--text-primary)}
+.step-actions button svg{width:14px;height:14px}
+.step-actions .danger{color:var(--color-destructive)}
+.step-actions .danger:hover{background:#FEE2E2;color:var(--color-destructive)}
+
+.bottom-bar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 24px;background:linear-gradient(180deg,transparent 0%,var(--color-background) 30%);display:flex;gap:10px;z-index:15}
+.btn{flex:1;height:48px;border-radius:14px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s var(--ease)}
+.btn svg{width:18px;height:18px;stroke-width:2.5}
+.btn-primary{background:var(--color-primary);color:#fff;box-shadow:0 4px 12px rgba(13,148,136,.3)}
+.btn-primary:hover{background:#0F766E}
+.btn-primary:active{transform:scale(.97)}
+.btn-secondary{background:var(--color-surface);color:var(--text-primary);border:1.5px solid var(--color-border)}
+.btn-secondary:hover{background:var(--color-muted)}
+.btn-accent{background:var(--color-accent);color:#fff;box-shadow:0 4px 12px rgba(234,88,12,.3)}
+.btn-accent:hover{background:#C2410C}
+.btn-ghost{background:transparent;color:var(--text-secondary)}
+.btn-ghost:hover{background:var(--color-muted)}
+
+.sheet-overlay{position:absolute;inset:0;background:rgba(15,23,42,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
+.sheet-overlay.open{opacity:1;pointer-events:auto}
+.sheet{width:100%;background:var(--color-surface);border-radius:24px 24px 0 0;padding:12px 20px 24px;max-height:80%;overflow-y:auto;transform:translateY(100%);transition:transform .3s var(--ease);box-shadow:var(--shadow-3)}
+.sheet-overlay.open .sheet{transform:translateY(0)}
+.handle{width:40px;height:4px;background:var(--color-border);border-radius:2px;margin:8px auto 16px}
+.sheet h2{font-size:18px;font-weight:800;margin:0 0 4px}
+.sheet p.subtitle{font-size:13px;color:var(--text-muted);margin:0 0 16px}
+.option-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.option{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--color-border);border-radius:14px;cursor:pointer;transition:all .15s var(--ease);background:var(--color-surface)}
+.option:hover{border-color:var(--color-primary);background:var(--color-surface-2)}
+.option.selected{border-color:var(--color-primary);background:var(--color-surface-2)}
+.option.selected .check{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.option-icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--color-muted);color:var(--color-primary);flex-shrink:0}
+.option-icon svg{width:22px;height:22px;stroke-width:2}
+.option-body{flex:1;min-width:0}
+.option-body h4{font-size:14px;font-weight:700;margin:0 0 2px;color:var(--text-primary)}
+.option-body p{font-size:12px;color:var(--text-muted);margin:0}
+.check{width:22px;height:22px;border-radius:50%;border:2px solid var(--color-border);display:grid;place-items:center;flex-shrink:0;transition:all .15s var(--ease)}
+.check svg{width:14px;height:14px;opacity:0;transition:opacity .15s var(--ease)}
+.option.selected .check svg{opacity:1}
+
+.edit-form{padding:16px 20px;display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.field label .req{color:var(--color-destructive)}
+.input,.textarea{width:100%;background:var(--color-surface);border:1.5px solid var(--color-border);border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s var(--ease);color:var(--text-primary)}
+.input:focus,.textarea:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.textarea{resize:none;min-height:96px;line-height:1.5}
+.field-row{display:flex;gap:8px}
+.mic-btn{position:absolute;right:10px;top:38px;width:36px;height:36px;border-radius:10px;background:var(--color-muted);color:var(--color-primary);display:grid;place-items:center;transition:all .15s var(--ease)}
+.mic-btn:hover{background:var(--color-primary);color:#fff}
+.mic-btn.recording{background:var(--color-destructive);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 12px rgba(220,38,38,0)}}
+.mic-btn svg{width:18px;height:18px}
+.field-rel{position:relative}
+.image-edit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.image-edit-grid .thumb{width:100%;height:96px}
+.image-edit-grid .add-thumb{width:100%;height:96px}
+.image-edit-grid .thumb .del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;backdrop-filter:blur(2px);opacity:0;transition:opacity .15s var(--ease)}
+.image-edit-grid .thumb:hover .del{opacity:1}
+.image-edit-grid .thumb .del svg{width:14px;height:14px}
+
+.editor-overlay{position:absolute;inset:0;background:#0f172a;z-index:200;display:none;flex-direction:column}
+.editor-overlay.open{display:flex}
+.editor-stage{flex:1;display:grid;place-items:center;background:#0f172a;position:relative;overflow:hidden}
+.editor-stage img{max-width:100%;max-height:100%;object-fit:contain;transition:filter .15s var(--ease),transform .25s var(--ease)}
+.editor-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#1f2937;overflow-x:auto;scrollbar-width:none}
+.editor-toolbar::-webkit-scrollbar{display:none}
+.tool{flex-shrink:0;min-width:56px;height:56px;border-radius:12px;background:transparent;color:#cbd5e1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600;transition:all .15s var(--ease)}
+.tool svg{width:20px;height:20px;stroke-width:2}
+.tool:hover{background:#334155;color:#fff}
+.tool.active{background:var(--color-primary);color:#fff}
+.tool-panel{padding:12px 16px;background:#1f2937;display:none}
+.tool-panel.open{display:block}
+.slider-row{display:flex;align-items:center;gap:10px;padding:4px 0}
+.slider-row label{font-size:11px;color:#cbd5e1;width:48px;font-weight:600}
+.slider-row input[type=range]{flex:1;accent-color:var(--color-primary)}
+.slider-row .val{font-size:11px;color:#fff;width:32px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+.toast{position:absolute;left:50%;top:60px;transform:translateX(-50%) translateY(-20px);background:#0f172a;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:300;opacity:0;pointer-events:none;transition:all .25s var(--ease);box-shadow:var(--shadow-3);display:inline-flex;align-items:center;gap:8px;max-width:90%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--color-primary)}
+.toast.error{background:var(--color-destructive)}
+
+.pdf-preview{position:absolute;inset:0;background:#1f2937;z-index:150;display:none;flex-direction:column}
+.pdf-preview.open{display:flex}
+.pdf-header{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#0f172a;color:#fff;flex-shrink:0}
+.pdf-header h2{font-size:15px;font-weight:700;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-header .icon-btn{color:#cbd5e1}
+.pdf-header .icon-btn:hover{background:#1e293b;color:#fff}
+.pdf-pages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.pdf-page{width:100%;max-width:340px;background:#fff;color:#0f172a;border-radius:6px;padding:28px 24px;box-shadow:var(--shadow-3);font-size:11px;line-height:1.5;min-height:480px;display:flex;flex-direction:column}
+.pdf-page h1{font-size:18px;font-weight:800;margin:0 0 4px}
+.pdf-page .sub{font-size:9px;color:#64748b;margin-bottom:20px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}
+.pdf-page h2{font-size:11px;font-weight:700;margin:0 0 6px;display:flex;align-items:center;gap:6px;color:#0f172a}
+.pdf-page h2 .num{display:inline-grid;place-items:center;width:18px;height:18px;background:#0D9488;color:#fff;border-radius:4px;font-size:9px}
+.pdf-page p{font-size:9.5px;line-height:1.6;margin:0 0 6px;color:#334155;white-space:pre-wrap}
+.pdf-page .img{width:100%;aspect-ratio:4/3;background:#e2e8f0;border-radius:3px;margin:6px 0;background-size:cover;background-position:center}
+.pdf-footer{display:flex;gap:8px;padding:12px 16px;background:#0f172a;flex-shrink:0}
+
+.progress-bar{position:relative;width:100%;height:6px;background:var(--color-muted);border-radius:9999px;overflow:hidden;margin:8px 0}
+.progress-bar .fill{position:absolute;inset:0;background:linear-gradient(90deg,var(--color-primary),var(--color-secondary));border-radius:9999px;transition:width .3s var(--ease)}
+
+[data-theme="dark"] .theme-toggle{background:#0F2A28;color:#F1F5F9}
+.theme-toggle{position:absolute;top:24px;right:24px;width:40px;height:40px;border-radius:12px;background:var(--color-surface);box-shadow:var(--shadow-2);display:grid;place-items:center;color:var(--text-primary);z-index:1000;transition:all .15s var(--ease)}
+.theme-toggle:hover{transform:scale(1.05)}
+.theme-toggle svg{width:20px;height:20px}
+
+.device-label{position:absolute;top:18px;left:24px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;z-index:5}
+
+.fab-menu{position:absolute;right:20px;bottom:96px;display:flex;flex-direction:column;gap:12px;align-items:flex-end;opacity:0;pointer-events:none;transform:translateY(10px);transition:all .2s var(--ease);z-index:20}
+.fab-menu.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.fab-item{display:inline-flex;align-items:center;gap:10px;cursor:pointer}
+.fab-item .label{background:#0f172a;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:var(--shadow-2);white-space:nowrap}
+.fab-item .mini{width:46px;height:46px;border-radius:50%;background:var(--color-surface);color:var(--text-primary);box-shadow:var(--shadow-2);display:grid;place-items:center;transition:transform .15s var(--ease)}
+.fab-item .mini:hover{transform:scale(1.08)}
+.fab-item .mini svg{width:22px;height:22px}
+.fab-item.primary .mini{background:var(--color-primary);color:#fff}
+
+@media (min-width:768px){.device{max-width:440px;height:min(920px,calc(100dvh - 48px))}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="device-label">SnapFlow · Mobile Preview</div>
+  <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+
+  <div class="device" id="device">
+    <div class="notch"></div>
+    <div class="status-bar">
+      <span id="clock">9:41</span>
+      <div class="right">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M1 9h2v2H1zm4-3h2v5H5zm4-3h2v8H9zm4-3h2v11h-2z"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4c2.5 0 4.5 1.5 5.5 3.5M2.5 7.5C3.5 5.5 5.5 4 8 4m0-2c3.5 0 6.5 2 8 5.5M0 11.5C2 6.5 5 4 8 4"/></svg>
+        <svg width="24" height="12" viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="1" y="2" width="20" height="8" rx="2"/><rect x="3" y="4" width="14" height="4" fill="currentColor"/><rect x="22" y="5" width="1.5" height="2" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <section class="screen" id="screen-home" data-screen="home">
+      <div class="topbar">
+        <h1>我的手册</h1>
+        <div class="spacer"></div>
+        <button class="icon-btn" aria-label="搜索" data-action="open-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="通知" data-action="toast-notification">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="badge">2</span>
+        </button>
+      </div>
+
+      <div class="search">
+        <div class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="搜索手册、步骤、标签..." id="searchInput" />
+        </div>
+      </div>
+
+      <div class="chips" id="filterChips">
+        <button class="chip active" data-filter="all">全部 5</button>
+        <button class="chip" data-filter="recent">最近</button>
+        <button class="chip" data-filter="fav">收藏 ⭐</button>
+        <button class="chip" data-filter="template">模板</button>
+        <button class="chip" data-filter="incomplete">未完成</button>
+      </div>
+
+      <div class="list" id="manualList"></div>
+
+      <div class="fab-menu" id="fabMenu">
+        <div class="fab-item primary" data-action="new-manual">
+          <span class="label">空白手册</span>
+          <button class="mini" aria-label="新建空白手册">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="fab-item" data-action="new-from-template">
+          <span class="label">从模板新建</span>
+          <button class="mini" aria-label="从模板新建">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h7v7"/></svg>
+          </button>
+        </div>
+        <div class="fab-item" data-action="quick-capture">
+          <span class="label">快速拍照</span>
+          <button class="mini" aria-label="快速拍照">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="fab" id="fab" aria-label="新建">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </section>
+
+    <section class="screen" id="screen-detail" data-screen="detail" hidden>
+      <div class="detail-header">
+        <button class="icon-btn" data-action="back-home" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 id="detailTitle">手册标题</h1>
+        <button class="icon-btn" data-action="edit-title" aria-label="编辑标题">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        </button>
+        <button class="icon-btn" data-action="more-menu" aria-label="更多">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      </div>
+      <div class="step-list" id="stepList"></div>
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" data-action="add-step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          加步骤
+        </button>
+        <button class="btn btn-primary" data-action="export-pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出 PDF
+        </button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-step-edit" data-screen="step-edit" hidden>
+      <div class="detail-header">
+        <button class="icon-btn" data-action="back-detail" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 id="stepEditTitle">编辑步骤</h1>
+        <div style="width:40px"></div>
+      </div>
+      <div class="edit-form">
+        <div class="field field-rel">
+          <label>步骤标题 <span class="req">*</span></label>
+          <input type="text" class="input" id="stepTitle" placeholder="例如：关闭总闸" />
+          <button class="mic-btn" id="micTitle" aria-label="语音转写标题">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+          </button>
+        </div>
+
+        <div class="field field-rel">
+          <label>步骤说明</label>
+          <textarea class="textarea" id="stepNote" placeholder="详细描述这一步要做什么...&#10;&#10;可用右侧 🎤 语音输入"></textarea>
+          <button class="mic-btn" id="micNote" aria-label="语音转写说明">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+          </button>
+        </div>
+
+        <div class="field">
+          <label>步骤图片 <span style="color:var(--text-muted);font-weight:500">(<span id="imgCount">0</span>/9)</span></label>
+          <div class="image-edit-grid" id="imageEditGrid"></div>
+        </div>
+
+        <div class="field">
+          <label>附加字段（可选）</label>
+          <div id="optionalFields" style="display:flex;flex-direction:column;gap:8px"></div>
+          <button class="btn btn-ghost" data-action="add-field" style="margin-top:4px;height:36px;font-size:13px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"/></svg>
+            添加字段
+          </button>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" data-action="cancel-step">取消</button>
+        <button class="btn btn-primary" data-action="save-step">保存步骤</button>
+      </div>
+    </section>
+
+    <div class="editor-overlay" id="imageEditor">
+      <div class="editor-stage">
+        <img id="editorImage" src="" alt="编辑中" />
+      </div>
+      <div class="editor-toolbar">
+        <button class="tool active" data-tool="crop" aria-label="裁剪">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></svg>
+          裁剪
+        </button>
+        <button class="tool" data-tool="rotate" aria-label="旋转">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          旋转
+        </button>
+        <button class="tool" data-tool="adjust" aria-label="调色">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20 4 4 0 0 0 0-8 2 2 0 0 1 0-4 6 6 0 0 0 0-8z"/></svg>
+          调色
+        </button>
+        <button class="tool" data-tool="annotate" aria-label="标注">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+          标注
+        </button>
+        <button class="tool" data-tool="mosaic" aria-label="马赛克">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="9" y="9" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><rect x="15" y="15" width="6" height="6"/></svg>
+          马赛克
+        </button>
+        <div style="flex:1"></div>
+        <button class="tool" data-action="editor-cancel" aria-label="取消">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          取消
+        </button>
+        <button class="tool" data-action="editor-done" style="background:var(--color-primary);color:#fff" aria-label="完成">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+          完成
+        </button>
+      </div>
+      <div class="tool-panel" id="toolPanel-adjust">
+        <div class="slider-row"><label>亮度</label><input type="range" min="50" max="150" value="100" data-adjust="brightness" /><span class="val" id="val-brightness">100</span></div>
+        <div class="slider-row"><label>对比</label><input type="range" min="50" max="150" value="100" data-adjust="contrast" /><span class="val" id="val-contrast">100</span></div>
+        <div class="slider-row"><label>饱和</label><input type="range" min="0" max="200" value="100" data-adjust="saturate" /><span class="val" id="val-saturate">100</span></div>
+      </div>
+    </div>
+
+    <div class="pdf-preview" id="pdfPreview">
+      <div class="pdf-header">
+        <button class="icon-btn" data-action="close-pdf" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 id="pdfTitle">PDF 预览</h2>
+        <button class="icon-btn" data-action="toast-share" aria-label="分享">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+      <div class="pdf-pages" id="pdfPages"></div>
+      <div class="pdf-footer">
+        <button class="btn btn-secondary" data-action="close-pdf">继续编辑</button>
+        <button class="btn btn-accent" data-action="save-pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          保存到本地
+        </button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="sheet-overlay" id="sheet-new">
+      <div class="sheet" role="dialog" aria-label="新建手册">
+        <div class="handle"></div>
+        <h2>新建手册</h2>
+        <p class="subtitle">选择创建方式</p>
+        <div class="option-list">
+          <div class="option selected" data-pick="blank">
+            <div class="option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+            <div class="option-body"><h4>空白手册</h4><p>从零开始，自由添加步骤和图片</p></div>
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+          <div class="option" data-pick="template">
+            <div class="option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+            <div class="option-body"><h4>从模板新建</h4><p>使用预置结构（巡检/安装/排错）</p></div>
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>手册标题 <span style="color:var(--text-muted);font-weight:500">（可留空）</span></label>
+          <input type="text" class="input" id="newManualTitle" placeholder="例如：设备巡检SOP" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn btn-secondary" data-action="close-sheet" data-target="sheet-new">取消</button>
+          <button class="btn btn-primary" data-action="create-manual">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-overlay" id="sheet-template">
+      <div class="sheet" role="dialog" aria-label="选择模板">
+        <div class="handle"></div>
+        <h2>选择模板</h2>
+        <p class="subtitle">点击查看步骤结构</p>
+        <div class="option-list" id="templateList"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" data-action="close-sheet" data-target="sheet-template">取消</button>
+          <button class="btn btn-primary" data-action="apply-template" disabled id="applyTemplateBtn">使用此模板</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-overlay" id="sheet-add-step">
+      <div class="sheet" role="dialog" aria-label="添加步骤">
+        <div class="handle"></div>
+        <h2>添加步骤</h2>
+        <p class="subtitle">选择图片来源</p>
+        <div class="option-list">
+          <div class="option" data-pick="camera">
+            <div class="option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+            <div class="option-body"><h4>拍照</h4><p>现场实时拍摄一张图</p></div>
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+          <div class="option" data-pick="gallery">
+            <div class="option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+            <div class="option-body"><h4>从相册多选</h4><p>一次选择多张图片</p></div>
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" data-action="close-sheet" data-target="sheet-add-step">取消</button>
+          <button class="btn btn-primary" data-action="open-step-edit">继续</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MOCK_IMAGES = [
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='#0D9488'/><stop offset='1' stop-color='#14B8A6'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><circle cx='120' cy='150' r='60' fill='%23fff' opacity='.25'/><rect x='220' y='100' width='120' height='100' rx='8' fill='%23fff' opacity='.4'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 1</text></svg>"),
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%23EA580C'/><stop offset='1' stop-color='%23FB923C'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><polygon points='200,60 320,240 80,240' fill='%23fff' opacity='.3'/><circle cx='320' cy='80' r='30' fill='%23fff' opacity='.5'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 2</text></svg>"),
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%237C3AED'/><stop offset='1' stop-color='%23A78BFA'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><rect x='80' y='80' width='240' height='140' rx='12' fill='%23fff' opacity='.35'/><circle cx='200' cy='150' r='30' fill='%23fff' opacity='.6'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 3</text></svg>"),
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%230EA5E9'/><stop offset='1' stop-color='%2338BDF8'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><path d='M0,200 Q100,150 200,180 T400,160 L400,300 L0,300 Z' fill='%23fff' opacity='.4'/><circle cx='100' cy='100' r='40' fill='%23fff' opacity='.5'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 4</text></svg>"),
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%23DC2626'/><stop offset='1' stop-color='%23F87171'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><rect x='100' y='60' width='200' height='180' rx='8' fill='%23fff' opacity='.3'/><line x1='100' y1='60' x2='300' y2='240' stroke='%23fff' stroke-width='3' opacity='.6'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 5</text></svg>"),
+  "data:image/svg+xml;utf8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%2310B981'/><stop offset='1' stop-color='%236EE7B7'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><circle cx='280' cy='120' r='50' fill='%23fff' opacity='.4'/><rect x='60' y='160' width='180' height='80' rx='8' fill='%23fff' opacity='.35'/><text x='200' y='270' text-anchor='middle' fill='%23fff' font-size='14' font-family='monospace'>Step Image 6</text></svg>"),
+];
+
+const MOCK_TEMPLATES = [
+  {id:'inspection', name:'设备巡检 SOP', desc:'7 步标准巡检流程', color:'#0D9488',
+   steps:['准备工具与防护装备','检查设备外观与标识','记录运行参数','检测关键连接部位','测试报警功能','清理作业区域','完成记录签字']},
+  {id:'install', name:'设备安装流程', desc:'8 步标准安装', color:'#EA580C',
+   steps:['核对设备清单','现场定位与标记','基础固定','线路连接','通电测试','参数标定','用户培训','交付验收']},
+  {id:'troubleshoot', name:'故障排错指南', desc:'8 步排错方法论', color:'#DC2626',
+   steps:['故障现象记录','初步原因分析','安全断电隔离','外观与连接检查','参数测量','部件替换测试','恢复与验证','原因总结归档']},
+  {id:'cleaning', name:'清洁消毒流程', desc:'6 步清洁规范', color:'#7C3AED',
+   steps:['穿戴防护用品','预处理可见污渍','配比清洁剂','浸泡与擦洗','清水冲洗','干燥与检查']},
+];
+
+let STATE = {
+  manuals: [
+    {id:'m1', title:'设备巡检 SOP - 车间A', cover:MOCK_IMAGES[0], steps:[
+      {id:'s1', order:1, title:'准备工具与防护装备', note:'戴绝缘手套、护目镜\n携带万用表、扳手套装\n确认工作票已签发', images:[MOCK_IMAGES[0],MOCK_IMAGES[1]], fields:{}, completed:true},
+      {id:'s2', order:2, title:'检查设备外观与标识', note:'查看铭牌是否清晰\n外壳有无破损、变形\n标识完整可读', images:[MOCK_IMAGES[2]], fields:{'设备编号':'','上次保养日期':''}, completed:true},
+      {id:'s3', order:3, title:'记录运行参数', note:'电压：___V\n电流：___A\n温度：___℃\n振动：___mm/s', images:[], fields:{}, completed:false},
+      {id:'s4', order:4, title:'检测关键连接部位', note:'', images:[MOCK_IMAGES[3]], fields:{}, completed:false},
+      {id:'s5', order:5, title:'测试报警功能', note:'', images:[], fields:{}, completed:false},
+    ], updatedAt:'2小时前', fav:true, template:false},
+    {id:'m2', title:'注塑机安装流程 v2', cover:MOCK_IMAGES[1], steps:[
+      {id:'s6', order:1, title:'核对设备清单', note:'对照装箱单逐一清点\n记录缺件情况', images:[MOCK_IMAGES[1]], fields:{}, completed:true},
+      {id:'s7', order:2, title:'现场定位与标记', note:'', images:[], fields:{}, completed:false},
+      {id:'s8', order:3, title:'基础固定', note:'', images:[MOCK_IMAGES[4]], fields:{}, completed:false},
+    ], updatedAt:'昨天 16:42', fav:false, template:false},
+    {id:'m3', title:'客户现场服务手册', cover:MOCK_IMAGES[2], steps:[
+      {id:'s9', order:1, title:'到达现场与签到', note:'', images:[MOCK_IMAGES[2]], fields:{}, completed:false},
+      {id:'s10', order:2, title:'问题确认', note:'', images:[], fields:{}, completed:false},
+    ], updatedAt:'3天前', fav:true, template:false},
+    {id:'m4', title:'空压机日常维护', cover:MOCK_IMAGES[3], steps:[], updatedAt:'上周', fav:false, template:false},
+    {id:'m5', title:'【模板】设备巡检 SOP', cover:MOCK_IMAGES[4], steps:[], updatedAt:'系统预置', fav:false, template:true},
+  ],
+  currentManualId:null,
+  currentStepId:null,
+  pickedNewWay:'blank',
+  pickedTemplateId:null,
+  pickedImageSource:null,
+  filter:'all',
+  search:'',
+  dark:false,
+  editor:{tool:'crop',adjust:{brightness:100,contrast:100,saturate:100},rotate:0},
+};
+
+const $ = (s,p=document)=>p.querySelector(s);
+const $$ = (s,p=document)=>[...p.querySelectorAll(s)];
+
+function showScreen(name){
+  $$('.screen').forEach(s=>s.hidden = (s.dataset.screen !== name));
+  $('#imageEditor').classList.remove('open');
+  $('#pdfPreview').classList.remove('open');
+  $$('.sheet-overlay').forEach(s=>s.classList.remove('open'));
+  $('#fabMenu').classList.remove('open');
+  STATE.editor={tool:'crop',adjust:{brightness:100,contrast:100,saturate:100},rotate:0};
+  applyEditorFilters();
+  $('#screen-'+name).scrollTop=0;
+}
+
+function openSheet(id){$('#'+id).classList.add('open')}
+function closeSheet(id){$('#'+id).classList.remove('open')}
+
+let toastTimer;
+function toast(msg,type=''){
+  const t=$('#toast');
+  t.className='toast '+type;
+  t.textContent=msg;
+  requestAnimationFrame(()=>t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+function filterManuals(){
+  const q=STATE.search.toLowerCase().trim();
+  return STATE.manuals.filter(m=>{
+    if(STATE.filter==='fav' && !m.fav) return false;
+    if(STATE.filter==='template' && !m.template) return false;
+    if(STATE.filter==='incomplete' && m.steps.length>0 && m.steps.every(s=>s.completed)) return false;
+    if(STATE.filter==='recent' && m.template) return false;
+    if(q && !m.title.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderList(){
+  const list = filterManuals();
+  const c = $('#manualList');
+  c.innerHTML='';
+  if(list.length===0){
+    c.innerHTML=`<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <h3>没有匹配的手册</h3>
+      <p>试试别的搜索词或筛选</p>
+    </div>`;
+    return;
+  }
+  list.forEach(m=>{
+    const stepCount = m.steps.length;
+    const doneCount = m.steps.filter(s=>s.completed).length;
+    const card = document.createElement('div');
+    card.className='manual-card';
+    card.innerHTML=`
+      <div class="cover" style="background-image:url('${m.cover}')">
+        ${stepCount>0?`<span class="badge-count">${doneCount}/${stepCount}</span>`:''}
+      </div>
+      <div class="body">
+        <h3>${m.fav?'<span class="star">⭐</span> ':''}${escapeHtml(m.title)}</h3>
+        <div class="meta">
+          <span>${stepCount} 步</span><span class="dot"></span><span>${escapeHtml(m.updatedAt)}</span>
+        </div>
+      </div>
+    `;
+    card.addEventListener('click',()=>openDetail(m.id));
+    c.appendChild(card);
+  });
+}
+
+function openDetail(id){
+  STATE.currentManualId=id;
+  const m = STATE.manuals.find(x=>x.id===id);
+  if(!m) return;
+  $('#detailTitle').textContent = m.title;
+  renderSteps();
+  showScreen('detail');
+}
+
+function renderSteps(){
+  const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+  if(!m) return;
+  const list = $('#stepList');
+  list.innerHTML='';
+  if(m.steps.length===0){
+    list.innerHTML=`<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+      <h3>还没有步骤</h3>
+      <p>点击下方"加步骤"开始记录</p>
+    </div>`;
+    return;
+  }
+  m.steps.forEach((s,i)=>{
+    const card = document.createElement('div');
+    card.className='step-card';
+    const hasNote = s.note && s.note.trim();
+    const fieldCount = Object.keys(s.fields||{}).length;
+    card.innerHTML=`
+      <div class="step-head">
+        <div class="step-num ${s.completed?'empty':''}">${s.completed?'✓':(i+1)}</div>
+        <div class="step-info">
+          <h3><span class="title">${escapeHtml(s.title) || '<span style="color:var(--text-muted);font-weight:500">未命名步骤</span>'}</span></h3>
+          <div class="meta">
+            <span>${s.images.length} 图</span>
+            ${hasNote?'<span class="dot"></span><span>有说明</span>':''}
+            ${fieldCount?'<span class="dot"></span><span>'+fieldCount+' 字段</span>':''}
+          </div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body">
+        ${s.images.length>0?`<div class="image-strip">
+          ${s.images.map(img=>`<div class="thumb" style="background-image:url('${img}')"></div>`).join('')}
+        </div>`:''}
+        <div class="step-note ${hasNote?'':'empty'}">${hasNote?escapeHtml(s.note):'暂无说明...'}</div>
+        ${fieldCount?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${Object.entries(s.fields).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;background:var(--color-surface-2);border-radius:8px"><span style="color:var(--text-muted)">${escapeHtml(k)}</span><span style="color:var(--text-primary);font-weight:500">${escapeHtml(v||'—')}</span></div>`).join('')}
+        </div>`:''}
+        <div class="step-actions">
+          <button data-action="toggle-step" data-id="${s.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            ${s.completed?'重做':'完成'}
+          </button>
+          <button data-action="edit-step" data-id="${s.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            编辑
+          </button>
+          <button data-action="duplicate-step" data-id="${s.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            复制
+          </button>
+          <button class="danger" data-action="delete-step" data-id="${s.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            删除
+          </button>
+        </div>
+      </div>
+    `;
+    card.querySelector('.step-head').addEventListener('click',()=>card.classList.toggle('expanded'));
+    list.appendChild(card);
+  });
+}
+
+function escapeHtml(s){return (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function openStepEdit(stepId){
+  const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+  if(!m) return;
+  STATE.currentStepId = stepId || null;
+  const s = stepId ? m.steps.find(x=>x.id===stepId) : {title:'',note:'',images:[],fields:{'确认人':'','日期':''}};
+  $('#stepEditTitle').textContent = stepId?'编辑步骤':'新建步骤';
+  $('#stepTitle').value = s.title||'';
+  $('#stepNote').value = s.note||'';
+  const of = $('#optionalFields');
+  of.innerHTML='';
+  const fields = stepId ? (s.fields||{}) : {'确认人':'','日期':''};
+  Object.entries(fields).forEach(([k,v])=>addFieldRow(k,v));
+  renderImageEditGrid(s.images);
+  showScreen('step-edit');
+}
+
+function addFieldRow(k='',v=''){
+  const of = $('#optionalFields');
+  const row = document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;align-items:center';
+  row.innerHTML=`<input type="text" class="input" placeholder="字段名" value="${escapeHtml(k)}" style="flex:1;height:36px;font-size:13px" data-fk/>
+    <input type="text" class="input" placeholder="值" value="${escapeHtml(v)}" style="flex:1.2;height:36px;font-size:13px" data-fv/>
+    <button class="icon-btn" data-action="rm-field" aria-label="删除字段" style="width:36px;height:36px;color:var(--color-destructive)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  row.querySelector('[data-action="rm-field"]').addEventListener('click',()=>row.remove());
+  of.appendChild(row);
+}
+
+function renderImageEditGrid(images){
+  const g = $('#imageEditGrid');
+  g.innerHTML='';
+  images.forEach((img,i)=>{
+    const t = document.createElement('div');
+    t.className='thumb';
+    t.style.backgroundImage=`url('${img}')`;
+    t.innerHTML=`<button class="del" aria-label="删除图片" data-idx="${i}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>`;
+    t.querySelector('.del').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      let s;
+      if(STATE.currentStepId){
+        s = m.steps.find(x=>x.id===STATE.currentStepId);
+      } else {
+        s = m.steps[m.steps.length-1] || (m.steps[0] = {images:[]});
+      }
+      if(!s.images) s.images=[];
+      s.images.splice(i,1);
+      renderImageEditGrid(s.images);
+    });
+    t.addEventListener('click',()=>openImageEditor(img));
+    g.appendChild(t);
+  });
+  if(images.length<9){
+    const add = document.createElement('div');
+    add.className='add-thumb';
+    add.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`;
+    add.addEventListener('click',()=>{
+      const remaining = 9 - images.length;
+      const toAdd = MOCK_IMAGES.slice(0, Math.min(remaining, 2));
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      let s;
+      if(STATE.currentStepId){
+        s = m.steps.find(x=>x.id===STATE.currentStepId);
+      } else {
+        s = m.steps[m.steps.length-1];
+        if(!s){s={images:[]}; m.steps.push(s);}
+      }
+      if(!s.images) s.images=[];
+      s.images = [...s.images, ...toAdd];
+      renderImageEditGrid(s.images);
+      toast(`已添加 ${toAdd.length} 张图片`, 'success');
+    });
+    g.appendChild(add);
+  }
+  $('#imgCount').textContent = images.length;
+}
+
+function openImageEditor(src){
+  $('#editorImage').src = src;
+  STATE.editor = {tool:'crop',adjust:{brightness:100,contrast:100,saturate:100},rotate:0};
+  $$('.tool[data-tool]').forEach(t=>t.classList.toggle('active',t.dataset.tool==='crop'));
+  $('#toolPanel-adjust').classList.remove('open');
+  $$('input[data-adjust]').forEach(i=>{i.value=100});
+  $$('[id^=val-]').forEach(s=>s.textContent='100');
+  applyEditorFilters();
+  $('#imageEditor').classList.add('open');
+}
+
+function applyEditorFilters(){
+  const a = STATE.editor.adjust;
+  const f = `brightness(${a.brightness}%) contrast(${a.contrast}%) saturate(${a.saturate}%)`;
+  const img = $('#editorImage');
+  if(img){img.style.filter = f; img.style.transform = `rotate(${STATE.editor.rotate}deg)`;}
+}
+
+function openPdfPreview(){
+  const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+  if(!m) return;
+  $('#pdfTitle').textContent = m.title + ' · 预览';
+  const pages = $('#pdfPages');
+  pages.innerHTML='';
+  pages.innerHTML=`<div style="text-align:center;color:#cbd5e1;padding:40px">
+    <div style="width:48px;height:48px;border:4px solid #334155;border-top-color:var(--color-primary);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite"></div>
+    <div style="font-size:13px">正在生成 PDF...</div>
+  </div>`;
+  $('#pdfPreview').classList.add('open');
+  setTimeout(()=>{
+    pages.innerHTML='';
+    const cover = document.createElement('div');
+    cover.className='pdf-page';
+    cover.innerHTML=`<div style="text-align:center;padding-top:80px">
+      <div style="font-size:11px;color:#0D9488;font-weight:700;letter-spacing:.2em;margin-bottom:20px">SNAPFLOW</div>
+      <h1>${escapeHtml(m.title)}</h1>
+      <div class="sub">生成于 ${new Date().toLocaleDateString('zh-CN')} · 共 ${m.steps.length} 步</div>
+      <div style="margin-top:60px;font-size:9px;color:#94A3B8">拍下流程 · 步步留痕</div>
+    </div>`;
+    pages.appendChild(cover);
+    for(let i=0;i<m.steps.length;i+=2){
+      const pg = document.createElement('div');
+      pg.className='pdf-page';
+      const chunk = m.steps.slice(i,i+2);
+      pg.innerHTML=`<div style="font-size:9px;color:#0D9488;font-weight:700;margin-bottom:14px">第 ${Math.floor(i/2)+1} 页 / 共 ${Math.ceil(m.steps.length/2)} 页</div>` +
+        chunk.map((s,idx)=>`
+          <h2><span class="num">${i+idx+1}</span>${escapeHtml(s.title || '未命名步骤')}</h2>
+          ${s.note?`<p>${escapeHtml(s.note)}</p>`:''}
+          ${s.images[0]?`<div class="img" style="background-image:url('${s.images[0]}')"></div>`:''}
+        `).join('');
+      pages.appendChild(pg);
+    }
+  },1200);
+}
+
+document.addEventListener('click',(e)=>{
+  const t = e.target.closest('[data-action]');
+  if(!t) return;
+  const a = t.dataset.action;
+  switch(a){
+    case 'back-home': showScreen('home'); break;
+    case 'back-detail': openDetail(STATE.currentManualId); break;
+    case 'add-step': openSheet('sheet-add-step'); break;
+    case 'edit-step': openStepEdit(t.dataset.id); break;
+    case 'toggle-step': {
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      const s = m.steps.find(x=>x.id===t.dataset.id);
+      s.completed = !s.completed;
+      renderSteps();
+      toast(s.completed?'已标记完成':'已撤销完成','success');
+      break;
+    }
+    case 'duplicate-step': {
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      const orig = m.steps.find(s=>s.id===t.dataset.id);
+      const copy = JSON.parse(JSON.stringify(orig));
+      copy.id = 's' + Date.now();
+      copy.order = m.steps.length+1;
+      copy.title = (orig.title||'') + ' (副本)';
+      copy.completed = false;
+      m.steps.push(copy);
+      renderSteps();
+      toast('已复制步骤', 'success');
+      break;
+    }
+    case 'delete-step': {
+      if(!confirm('确认删除此步骤？此操作不可撤销。')) return;
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      m.steps = m.steps.filter(s=>s.id!==t.dataset.id);
+      renderSteps();
+      toast('步骤已删除');
+      break;
+    }
+    case 'save-step': {
+      const title = $('#stepTitle').value.trim();
+      const note = $('#stepNote').value;
+      if(!title){toast('请填写步骤标题','error');$('#stepTitle').focus();return;}
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      const fields = {};
+      $$('#optionalFields > div').forEach(row=>{
+        const k=row.querySelector('[data-fk]').value.trim();
+        const v=row.querySelector('[data-fv]').value.trim();
+        if(k) fields[k]=v;
+      });
+      if(STATE.currentStepId){
+        const s = m.steps.find(x=>x.id===STATE.currentStepId);
+        Object.assign(s,{title,note,fields});
+        toast('步骤已保存', 'success');
+      } else {
+        const newStep = {id:'s'+Date.now(),order:m.steps.length+1,title,note,images:[],fields,completed:false};
+        m.steps.push(newStep);
+        STATE.currentStepId = newStep.id;
+        toast('步骤已添加', 'success');
+      }
+      m.updatedAt = '刚刚';
+      openDetail(STATE.currentManualId);
+      break;
+    }
+    case 'cancel-step': openDetail(STATE.currentManualId); break;
+    case 'add-field': addFieldRow(); break;
+    case 'open-search': $('#searchInput').focus(); break;
+    case 'toast-notification': toast('暂无新通知'); break;
+    case 'toast-share': toast('分享链接已复制到剪贴板','success'); break;
+    case 'new-manual': STATE.pickedNewWay='blank'; openSheet('sheet-new'); break;
+    case 'new-from-template': STATE.pickedNewWay='template'; openSheet('sheet-template'); renderTemplateList(); break;
+    case 'quick-capture': toast('相机功能需在真机使用','error'); break;
+    case 'create-manual': {
+      const title = $('#newManualTitle').value.trim() || '未命名手册';
+      const newM = {id:'m'+Date.now(), title, cover: MOCK_IMAGES[Math.floor(Math.random()*MOCK_IMAGES.length)], steps:[], updatedAt:'刚刚', fav:false, template:false};
+      if(STATE.pickedNewWay==='template' && STATE.pickedTemplateId){
+        const tpl = MOCK_TEMPLATES.find(x=>x.id===STATE.pickedTemplateId);
+        newM.title = title + ' · ' + tpl.name;
+        newM.steps = tpl.steps.map((ts,i)=>({id:'s'+Date.now()+'_'+i,order:i+1,title:ts,note:'',images:[],fields:{},completed:false}));
+      }
+      STATE.manuals.unshift(newM);
+      closeSheet('sheet-new');
+      closeSheet('sheet-template');
+      $('#newManualTitle').value='';
+      renderList();
+      toast('手册已创建','success');
+      setTimeout(()=>openDetail(newM.id),300);
+      break;
+    }
+    case 'apply-template': {
+      $('#newManualTitle').value='';
+      closeSheet('sheet-template');
+      openSheet('sheet-new');
+      break;
+    }
+    case 'open-step-edit': {
+      closeSheet('sheet-add-step');
+      openStepEdit(null);
+      break;
+    }
+    case 'close-sheet': closeSheet(t.dataset.target); break;
+    case 'export-pdf': openPdfPreview(); break;
+    case 'close-pdf': $('#pdfPreview').classList.remove('open'); break;
+    case 'save-pdf': {
+      toast('PDF 已保存到下载目录','success');
+      setTimeout(()=>$('#pdfPreview').classList.remove('open'),1000);
+      break;
+    }
+    case 'editor-cancel': $('#imageEditor').classList.remove('open'); break;
+    case 'editor-done': {
+      toast('编辑已保存','success');
+      $('#imageEditor').classList.remove('open');
+      break;
+    }
+    case 'edit-title': {
+      const m = STATE.manuals.find(x=>x.id===STATE.currentManualId);
+      const nv = prompt('修改手册标题', m.title);
+      if(nv!==null && nv.trim()){
+        m.title = nv.trim();
+        $('#detailTitle').textContent = m.title;
+        renderList();
+        toast('标题已更新','success');
+      }
+      break;
+    }
+    case 'more-menu': toast('长按删除、分享等更多操作'); break;
+  }
+});
+
+document.addEventListener('click',(e)=>{
+  const opt = e.target.closest('.option');
+  if(!opt) return;
+  const list = opt.parentElement;
+  list.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+  opt.classList.add('selected');
+  if(list.closest('#sheet-new')) STATE.pickedNewWay = opt.dataset.pick;
+  if(list.closest('#sheet-add-step')) STATE.pickedImageSource = opt.dataset.pick;
+  if(list.closest('#sheet-template')){
+    STATE.pickedTemplateId = opt.dataset.pick;
+    $('#applyTemplateBtn').disabled = false;
+  }
+});
+
+$('#filterChips').addEventListener('click',(e)=>{
+  const c = e.target.closest('.chip');
+  if(!c) return;
+  $$('#filterChips .chip').forEach(x=>x.classList.remove('active'));
+  c.classList.add('active');
+  STATE.filter = c.dataset.filter;
+  renderList();
+});
+
+let searchTimer;
+$('#searchInput').addEventListener('input',(e)=>{
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{STATE.search=e.target.value;renderList()},200);
+});
+
+$('#fab').addEventListener('click',()=>$('#fabMenu').classList.toggle('open'));
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('#fab') && !e.target.closest('#fabMenu')) $('#fabMenu').classList.remove('open');
+});
+
+$$('.tool[data-tool]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $$('.tool[data-tool]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    STATE.editor.tool = btn.dataset.tool;
+    $('#toolPanel-adjust').classList.toggle('open', btn.dataset.tool==='adjust');
+    if(btn.dataset.tool==='rotate'){
+      STATE.editor.rotate = (STATE.editor.rotate + 90) % 360;
+      applyEditorFilters();
+    }
+    if(['crop','annotate','mosaic'].includes(btn.dataset.tool)){
+      const labels={crop:'裁剪',annotate:'标注',mosaic:'马赛克'};
+      toast(`${labels[btn.dataset.tool]}功能演示（拖动选区）`);
+    }
+  });
+});
+
+$('#toolPanel-adjust').addEventListener('input',(e)=>{
+  const k = e.target.dataset.adjust;
+  if(!k) return;
+  STATE.editor.adjust[k] = +e.target.value;
+  $(`#val-${k}`).textContent = e.target.value;
+  applyEditorFilters();
+});
+
+document.querySelectorAll('.mic-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    btn.classList.toggle('recording');
+    if(btn.classList.contains('recording')){
+      toast('正在录音...松开发送');
+      setTimeout(()=>{
+        btn.classList.remove('recording');
+        const target = btn.id==='micTitle' ? $('#stepTitle') : $('#stepNote');
+        const samples = btn.id==='micTitle' ? ['关闭总电源开关','检查设备运行状态','清理作业区域'] : ['确认所有连接紧固\n注意安全防护\n记录参数值'];
+        target.value = samples[Math.floor(Math.random()*samples.length)];
+        toast('语音转写完成','success');
+      },1800);
+    } else {
+      toast('已停止录音');
+    }
+  });
+});
+
+function renderTemplateList(){
+  const c = $('#templateList');
+  c.innerHTML='';
+  MOCK_TEMPLATES.forEach(t=>{
+    const o = document.createElement('div');
+    o.className='option';
+    o.dataset.pick = t.id;
+    o.innerHTML=`
+      <div class="option-icon" style="background:${t.color}20;color:${t.color}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+      </div>
+      <div class="option-body">
+        <h4>${escapeHtml(t.name)}</h4>
+        <p>${escapeHtml(t.desc)} · ${t.steps.length} 步</p>
+      </div>
+      <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+    c.appendChild(o);
+  });
+}
+
+$('#themeToggle').addEventListener('click',()=>{
+  STATE.dark = !STATE.dark;
+  document.documentElement.dataset.theme = STATE.dark?'dark':'';
+  const ico = $('#themeIcon');
+  ico.innerHTML = STATE.dark
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+});
+
+function tick(){
+  const d=new Date();
+  $('#clock').textContent = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+tick();setInterval(tick,30000);
+
+const style = document.createElement('style');
+style.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+
+renderList();
+</script>
+</body>
+</html>

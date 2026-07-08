@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"curl -s https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json 2>&1 | python3 -c \\\"import json,sys; d=json.load(sys.stdin); s=d['current_release']['stable']; pri...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nTypeError: list indices must be integers or slices, not str",
+  "timestamp": "2026-07-08T15:37:57.854Z",
+  "retry_count": 1
+}
