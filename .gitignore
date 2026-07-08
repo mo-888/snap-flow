@@ -1,3 +1,4 @@
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -5,11 +6,15 @@
 .pub-cache/
 .pub/
 build/
-ios/
-android/
 *.iml
+.metadata
+
+# Generated code (drift) — MUST be committed for builds to work
+# *.g.dart  -- intentionally not ignored
+
+# IDE
 .idea/
 .vscode/
-*.g.dart
-*.freezed.dart
-.metadata
+
+# OS
+.DS_Store
