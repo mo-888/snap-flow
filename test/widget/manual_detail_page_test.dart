@@ -27,9 +27,9 @@ domain.Manual _make() => domain.Manual(
       isFavorite: false,
       createdAt: DateTime(2026, 1, 1),
       updatedAt: DateTime(2026, 1, 1),
-      steps: [
-        domain.Step(id: 's1', order: 100, title: '第一步', note: 'note1', completed: false, images: const [], optionalFields: const {}),
-        domain.Step(id: 's2', order: 200, title: '第二步', note: 'note2', completed: false, images: const [], optionalFields: const {}),
+      steps: const [
+        domain.Step(id: 's1', order: 100, title: '第一步', note: 'note1', completed: false, images: [], optionalFields: {}),
+        domain.Step(id: 's2', order: 200, title: '第二步', note: 'note2', completed: false, images: [], optionalFields: {}),
       ],
     );
 
