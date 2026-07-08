@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:snapflow/core/theme.dart';
 import 'package:snapflow/features/manual/domain/entities.dart' as domain;
 import 'package:snapflow/features/manual/domain/manual_repository.dart';
 import 'package:snapflow/features/manual/presentation/manual_detail_page.dart';
@@ -40,11 +41,14 @@ void main() {
         overrides: [
           manualRepositoryProvider.overrideWith((_) async => _StubRepo(_make())),
         ],
-        child: const MaterialApp(home: ManualDetailPage(manualId: 'm1')),
+        child: MaterialApp(
+          theme: SnapFlowTheme.light(),
+          home: const ManualDetailPage(manualId: 'm1'),
+        ),
       ),
     );
     await tester.pump();
-    expect(find.text('第一步'), findsOneWidget);
-    expect(find.text('第二步'), findsOneWidget);
+    expect(find.text('第一步', skipOffstage: false), findsOneWidget);
+    expect(find.text('第二步', skipOffstage: false), findsOneWidget);
   });
 }
