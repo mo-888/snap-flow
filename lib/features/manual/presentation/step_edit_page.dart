@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../shared/providers.dart';
 import '../../capture/image_capture_service.dart';
+import '../../editor/image_editor_page.dart';
 import '../../voice/voice_button.dart';
 import '../../voice/voice_to_text_service.dart';
 import '../domain/entities.dart' as domain;
@@ -109,6 +110,34 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
     ref.invalidate(manualDetailProvider(_manual!.id));
   }
 
+  Future<void> _editImage(int idx) async {
+    if (_step == null || _manual == null) return;
+    final img = _step!.images[idx];
+    final source = img.editedPath ?? img.originalPath;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ImageEditorPage(
+          sourcePath: source,
+          manualId: _manual!.id,
+          onSaved: (editedPath) async {
+            final newImages = [..._step!.images];
+            newImages[idx] = newImages[idx].copyWith(editedPath: editedPath);
+            final updatedStep = _step!.copyWith(images: newImages);
+            final newSteps = _manual!.steps
+                .map((s) => s.id == updatedStep.id ? updatedStep : s)
+                .toList();
+            final repo = await ref.read(manualRepositoryProvider.future);
+            await repo.saveManual(
+              _manual!.copyWith(steps: newSteps, updatedAt: DateTime.now()),
+            );
+            setState(() => _step = updatedStep);
+            ref.invalidate(manualDetailProvider(_manual!.id));
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (_step == null || _manual == null) return;
     final updatedStep = _step!.copyWith(
@@ -161,7 +190,7 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
           const SizedBox(height: 8),
           ThumbGrid(
             images: _step?.images ?? const [],
-            onTap: (i) {},
+            onTap: _editImage,
             onDelete: _deleteImage,
           ),
           const SizedBox(height: 16),
