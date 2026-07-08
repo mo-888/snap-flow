@@ -53,7 +53,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.textContaining('还没有手册'), findsOneWidget);
+    expect(find.textContaining('没有匹配的手册'), findsOneWidget);
   });
 
   testWidgets('Home renders manual cards', (tester) async {
