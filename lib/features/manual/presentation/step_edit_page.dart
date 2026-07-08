@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../shared/providers.dart';
 import '../../capture/image_capture_service.dart';
+import '../../voice/voice_button.dart';
+import '../../voice/voice_to_text_service.dart';
 import '../domain/entities.dart' as domain;
 import 'manual_detail_page.dart';
 import 'widgets/thumb_grid.dart';
@@ -163,10 +165,24 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
             onDelete: _deleteImage,
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _noteCtl,
-            decoration: const InputDecoration(labelText: '说明'),
-            maxLines: 5,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _noteCtl,
+                  decoration: const InputDecoration(labelText: '说明'),
+                  maxLines: 5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              VoiceButton(
+                service: VoiceToTextService(asr: FakeAsr()),
+                onResult: (text) => setState(() {
+                  _noteCtl.text = _noteCtl.text.isEmpty ? text : '${_noteCtl.text} $text';
+                }),
+              ),
+            ],
           ),
         ],
       ),

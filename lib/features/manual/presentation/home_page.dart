@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/providers.dart';
+import '../../template/template_service.dart';
 import '../domain/entities.dart';
 import 'manual_detail_page.dart';
 import 'widgets/manual_card.dart';
@@ -51,29 +52,65 @@ class HomePage extends ConsumerWidget {
   }
 
   Future<void> _onCreate(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
-    final title = await showDialog<String>(
+    final mode = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => SimpleDialog(
         title: const Text('新建手册'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: '标题（可空）'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('创建'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'blank'),
+            child: const Text('空白手册'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'template'),
+            child: const Text('从模板新建'),
           ),
         ],
       ),
     );
-    if (title == null) return;
+    if (mode == null) return;
+
+    String? title;
+    if (mode == 'blank') {
+      final ctl = TextEditingController();
+      title = await showDialog<String>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('标题'),
+          content: TextField(controller: ctl, autofocus: true),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, ctl.text),
+              child: const Text('创建'),
+            ),
+          ],
+        ),
+      );
+      if (title == null) return;
+    } else {
+      final svc = TemplateService();
+      final templates = await svc.listTemplates();
+      final picked = await showDialog<Template>(
+        context: context,
+        builder: (_) => SimpleDialog(
+          title: const Text('选择模板'),
+          children: templates
+              .map((t) => SimpleDialogOption(
+                    onPressed: () => Navigator.pop(context, t),
+                    child: Text('${t.name}  (${t.steps.length} 步)'),
+                  ))
+              .toList(),
+        ),
+      );
+      if (picked == null) return;
+      await _createFromTemplate(ref, picked);
+      return;
+    }
+
     final repo = await ref.read(manualRepositoryProvider.future);
     final now = DateTime.now();
-    final manual = Manual(
+    await repo.saveManual(Manual(
       id: 'm-${now.millisecondsSinceEpoch}',
       title: title,
       coverImagePath: null,
@@ -81,8 +118,35 @@ class HomePage extends ConsumerWidget {
       createdAt: now,
       updatedAt: now,
       steps: const [],
-    );
-    await repo.saveManual(manual);
+    ));
+    ref.invalidate(manualListProvider);
+  }
+
+  Future<void> _createFromTemplate(WidgetRef ref, Template t) async {
+    final repo = await ref.read(manualRepositoryProvider.future);
+    final now = DateTime.now();
+    final steps = <Step>[];
+    for (var i = 0; i < t.steps.length; i++) {
+      final ts = t.steps[i];
+      steps.add(Step(
+        id: 's-${now.millisecondsSinceEpoch}-$i',
+        order: (i + 1) * 100,
+        title: ts.title,
+        note: '',
+        completed: false,
+        images: const [],
+        optionalFields: ts.fields,
+      ));
+    }
+    await repo.saveManual(Manual(
+      id: 'm-${now.millisecondsSinceEpoch}',
+      title: t.name,
+      coverImagePath: null,
+      isFavorite: false,
+      createdAt: now,
+      updatedAt: now,
+      steps: steps,
+    ));
     ref.invalidate(manualListProvider);
   }
 }

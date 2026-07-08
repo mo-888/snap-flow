@@ -1,6 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 import '../../../shared/providers.dart';
+import '../../../features/export/pdf_exporter.dart';
 import '../domain/entities.dart' as domain;
 import 'home_page.dart';
 import 'step_edit_page.dart';
@@ -25,7 +28,10 @@ class ManualDetailPage extends ConsumerWidget {
           orElse: () => const Text('手册'),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.picture_as_pdf_outlined), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: () => _exportPdf(context, ref, manualId),
+          ),
         ],
       ),
       body: async.when(
@@ -116,5 +122,28 @@ class ManualDetailPage extends ConsumerWidget {
     await repo.saveManual(m.copyWith(steps: newSteps, updatedAt: DateTime.now()));
     ref.invalidate(manualDetailProvider(m.id));
     ref.invalidate(manualListProvider);
+  }
+
+  Future<void> _exportPdf(BuildContext context, WidgetRef ref, String manualId) async {
+    final repo = await ref.read(manualRepositoryProvider.future);
+    final m = await repo.getManual(manualId);
+    if (m == null) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('生成 PDF…')]),
+      ),
+    );
+    try {
+      final bytes = await PdfExporter().exportToBytes(m);
+      if (context.mounted) Navigator.of(context).pop();
+      await Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: '${m.title}.pdf');
+    } catch (e) {
+      if (context.mounted) Navigator.of(context).pop();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导出失败：$e')));
+      }
+    }
   }
 }
