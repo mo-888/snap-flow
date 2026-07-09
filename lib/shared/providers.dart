@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../core/db/database.dart';
 import '../core/files/file_service.dart';
 import '../features/manual/data/manual_repository_impl.dart';
+import '../features/manual/domain/entities.dart' as domain;
 import '../features/manual/domain/manual_repository.dart';
 
 const _uuid = Uuid();
@@ -31,6 +32,20 @@ final manualRepositoryProvider = FutureProvider<ManualRepository>((ref) async {
   final fs = await ref.watch(fileServiceProvider.future);
   return ManualRepositoryImpl(db: db, files: fs);
 });
+
+/// 所有标签
+final tagsProvider = FutureProvider<List<domain.Tag>>((ref) async {
+  final repo = await ref.watch(manualRepositoryProvider.future);
+  return repo.listTags();
+});
+
+/// 首页标签筛选（多选，空集合 = 不过滤）
+final selectedTagIdsProvider = StateProvider<Set<String>>((_) => <String>{});
+
+/// 手册排序方式
+enum ManualSort { updatedDesc, createdDesc, titleAsc, completionDesc }
+
+final manualSortProvider = StateProvider<ManualSort>((_) => ManualSort.updatedDesc);
 
 Future<String> savePickedImage({
   required File source,

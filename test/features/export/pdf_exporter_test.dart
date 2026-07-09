@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:snapflow/features/export/pdf_exporter.dart';
 import 'package:snapflow/features/manual/domain/entities.dart';
 
@@ -11,7 +12,7 @@ void main() {
       isFavorite: false,
       createdAt: DateTime(2026, 1, 1),
       updatedAt: DateTime(2026, 1, 1),
-      steps: const [
+      steps: [
         Step(
           id: 's1',
           order: 100,
@@ -20,10 +21,14 @@ void main() {
           completed: false,
           images: [],
           optionalFields: {},
+          createdAt: DateTime(2026, 1, 1),
         ),
       ],
     );
-    final out = await PdfExporter().exportToBytes(m);
+    // 注入 helvetica 字体，避免单测中加载 asset bundle。
+    final out = await PdfExporter(
+      fontProvider: () async => pw.Font.helvetica(),
+    ).exportToBytes(m);
     expect(out.length, greaterThan(100));
     expect(String.fromCharCodes(out.take(4)), equals('%PDF'));
   });

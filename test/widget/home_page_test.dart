@@ -20,6 +20,12 @@ class _StubRepo implements ManualRepository {
   Future<void> saveManual(Manual manual) async {}
   @override
   Future<void> deleteManual(String id) async {}
+  @override
+  Future<List<Tag>> listTags() async => [];
+  @override
+  Future<void> saveTag(Tag tag) async {}
+  @override
+  Future<void> deleteTag(String id) async {}
 }
 
 Manual _stub(String id, String title, int steps) => Manual(
@@ -39,6 +45,7 @@ Manual _stub(String id, String title, int steps) => Manual(
           completed: false,
           images: const [],
           optionalFields: const {},
+          createdAt: DateTime(2026, 1, 1),
         ),
       ),
     );

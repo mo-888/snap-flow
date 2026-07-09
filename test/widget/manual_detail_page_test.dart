@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:snapflow/core/theme.dart';
 import 'package:snapflow/features/manual/domain/entities.dart' as domain;
+import 'package:snapflow/features/manual/domain/entities.dart' show Tag;
 import 'package:snapflow/features/manual/domain/manual_repository.dart';
 import 'package:snapflow/features/manual/presentation/manual_detail_page.dart';
 import 'package:snapflow/shared/providers.dart';
@@ -19,6 +20,12 @@ class _StubRepo implements ManualRepository {
   Future<void> saveManual(domain.Manual manual) async {}
   @override
   Future<void> deleteManual(String id) async {}
+  @override
+  Future<List<Tag>> listTags() async => [];
+  @override
+  Future<void> saveTag(Tag tag) async {}
+  @override
+  Future<void> deleteTag(String id) async {}
 }
 
 domain.Manual _make() => domain.Manual(
@@ -28,9 +35,9 @@ domain.Manual _make() => domain.Manual(
       isFavorite: false,
       createdAt: DateTime(2026, 1, 1),
       updatedAt: DateTime(2026, 1, 1),
-      steps: const [
-        domain.Step(id: 's1', order: 100, title: '第一步', note: 'note1', completed: false, images: [], optionalFields: {}),
-        domain.Step(id: 's2', order: 200, title: '第二步', note: 'note2', completed: false, images: [], optionalFields: {}),
+      steps: [
+        domain.Step(id: 's1', order: 100, title: '第一步', note: 'note1', completed: false, images: [], optionalFields: {}, createdAt: DateTime(2026, 1, 1)),
+        domain.Step(id: 's2', order: 200, title: '第二步', note: 'note2', completed: false, images: [], optionalFields: {}, createdAt: DateTime(2026, 1, 1)),
       ],
     );
 

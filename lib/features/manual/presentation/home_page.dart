@@ -1,9 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/snap_toast.dart';
+import '../../import_export/presentation/export_dialog.dart';
+import '../../import_export/presentation/import_dialog.dart';
+import '../../tag/presentation/tag_manager_page.dart';
+import '../../tag/presentation/widgets/tag_filter_sheet.dart';
+import '../../template/presentation/template_manager_page.dart';
 import '../../template/template_sheet.dart';
 import '../domain/entities.dart';
 import 'manual_detail_page.dart';
@@ -23,18 +31,47 @@ final filteredManualsProvider = Provider<AsyncValue<List<Manual>>>((ref) {
   final async = ref.watch(manualListProvider);
   final filter = ref.watch(manualFilterProvider);
   final q = ref.watch(manualSearchProvider).toLowerCase();
+  final selectedTagIds = ref.watch(selectedTagIdsProvider);
+  final sort = ref.watch(manualSortProvider);
   return async.whenData((list) {
-    return list.where((m) {
+    final filtered = list.where((m) {
       if (q.isNotEmpty && !m.title.toLowerCase().contains(q)) return false;
       switch (filter) {
-        case ManualFilter.all: return true;
-        case ManualFilter.favorites: return m.isFavorite;
+        case ManualFilter.all: break;
+        case ManualFilter.favorites:
+          if (!m.isFavorite) return false;
+          break;
         case ManualFilter.incomplete:
-          return m.steps.isNotEmpty && m.steps.any((s) => !s.completed);
+          if (!(m.steps.isNotEmpty && m.steps.any((s) => !s.completed))) return false;
+          break;
         case ManualFilter.recent:
-          return m.updatedAt.isAfter(DateTime.now().subtract(const Duration(days: 7)));
+          if (!m.updatedAt.isAfter(DateTime.now().subtract(const Duration(days: 7)))) return false;
+          break;
       }
+      if (selectedTagIds.isNotEmpty) {
+        final hasAny = m.tagIds.any(selectedTagIds.contains);
+        if (!hasAny) return false;
+      }
+      return true;
     }).toList();
+
+    int cmp(Manual a, Manual b) {
+      switch (sort) {
+        case ManualSort.updatedDesc:
+          return b.updatedAt.compareTo(a.updatedAt);
+        case ManualSort.createdDesc:
+          return b.createdAt.compareTo(a.createdAt);
+        case ManualSort.titleAsc:
+          return a.title.compareTo(b.title);
+        case ManualSort.completionDesc:
+          final aDone = a.steps.where((s) => s.completed).length / (a.steps.isEmpty ? 1 : a.steps.length);
+          final bDone = b.steps.where((s) => s.completed).length / (b.steps.isEmpty ? 1 : b.steps.length);
+          return bDone.compareTo(aDone);
+      }
+    }
+
+    filtered.sort(cmp);
+    return filtered;
   });
 });
 
@@ -45,6 +82,8 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filtered = ref.watch(filteredManualsProvider);
     final filter = ref.watch(manualFilterProvider);
+    final selectedTagIds = ref.watch(selectedTagIdsProvider);
+    final sort = ref.watch(manualSortProvider);
 
     Future<void> toggleFav(Manual m) async {
       final repo = await ref.read(manualRepositoryProvider.future);
@@ -53,19 +92,42 @@ class HomePage extends ConsumerWidget {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('我的手册'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.import_export),
+            tooltip: '导入/导出',
+            onSelected: (v) {
+              if (v == 'import') {
+                showDialog(context: context, builder: (_) => const ImportDialog());
+              } else if (v == 'export') {
+                _showExport(context, ref);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'import', child: ListTile(leading: Icon(Icons.file_download), title: Text('导入手册'))),
+              PopupMenuItem(value: 'export', child: ListTile(leading: Icon(Icons.file_upload), title: Text('导出手册'))),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.sort),
+            tooltip: '排序',
+            onPressed: () async {
+              final next = await showModalBottomSheet<ManualSort>(
+                context: context,
+                builder: (_) => _SortSheet(current: sort),
+              );
+              if (next != null) {
+                ref.read(manualSortProvider.notifier).state = next;
+              }
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('我的手册', style: Theme.of(context).textTheme.headlineSmall),
-                  ),
-                ],
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
@@ -77,7 +139,6 @@ class HomePage extends ConsumerWidget {
                 onChanged: (v) => ref.read(manualSearchProvider.notifier).state = v,
               ),
             ),
-            // Wrap 自适应换行，避免横向 ListView 在窄屏挤压
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Wrap(
@@ -88,6 +149,29 @@ class HomePage extends ConsumerWidget {
                   _Chip(label: '最近', value: ManualFilter.recent, current: filter),
                   _Chip(label: '收藏 ⭐', value: ManualFilter.favorites, current: filter),
                   _Chip(label: '未完成', value: ManualFilter.incomplete, current: filter),
+                  ActionChip(
+                    avatar: const Icon(Icons.dashboard_customize, size: 16),
+                    label: const Text('模板'),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const TemplateManagerPage(),
+                    )),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.label_outline, size: 16),
+                    label: Text(selectedTagIds.isEmpty ? '标签' : '标签 (${selectedTagIds.length})'),
+                    onPressed: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => const TagFilterSheet(),
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.label, size: 16, color: Colors.orange),
+                    label: const Text('管理'),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const TagManagerPage(),
+                    )),
+                  ),
                 ],
               ),
             ),
@@ -127,6 +211,23 @@ class HomePage extends ConsumerWidget {
   }
 }
 
+Future<void> _showExport(BuildContext context, WidgetRef ref) async {
+  final result = await showDialog<ExportResult>(
+    context: context,
+    builder: (_) => const ExportDialog(),
+  );
+  if (result == null) return;
+  // 写入临时文件并分享。
+  final tmp = await getTemporaryDirectory();
+  final stamp = DateTime.now().millisecondsSinceEpoch;
+  final file = File('${tmp.path}/snapflow_export_$stamp.json');
+  await file.writeAsString(result.json);
+  await Share.shareXFiles(
+    [XFile(file.path)],
+    subject: 'SnapFlow 手册导出（${result.count} 本）',
+  );
+}
+
 class _Chip extends ConsumerWidget {
   final String label;
   final ManualFilter value;
@@ -137,7 +238,7 @@ class _Chip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = value == current;
     final c = Theme.of(context).colorScheme;
-    final sf = Theme.of(context).extension<SnapFlowColors>(); // optional
+    final sf = Theme.of(context).extension<SnapFlowColors>();
     return ChoiceChip(
       label: Text(label),
       selected: selected,
@@ -154,8 +255,39 @@ class _Chip extends ConsumerWidget {
   }
 }
 
-/// FAB 菜单：主 FAB + 展开的"快速拍照"/"从模板新建"。
-/// 使用 ConsumerStatefulWidget 而非持有 WidgetRef 字段，避免 ref 跨重建失效。
+class _SortSheet extends StatelessWidget {
+  final ManualSort current;
+  const _SortSheet({required this.current});
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const ListTile(title: Text('排序方式', style: TextStyle(fontWeight: FontWeight.w700))),
+          for (final s in ManualSort.values)
+            RadioListTile<ManualSort>(
+              value: s,
+              groupValue: current,
+              title: Text(_label(s)),
+              onChanged: (v) => Navigator.of(context).pop(v),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static String _label(ManualSort s) {
+    switch (s) {
+      case ManualSort.updatedDesc: return '最近更新';
+      case ManualSort.createdDesc: return '最近创建';
+      case ManualSort.titleAsc: return '标题字母';
+      case ManualSort.completionDesc: return '完成度高';
+    }
+  }
+}
+
+/// FAB 菜单：主 FAB + 展开的"空白手册"/"快速拍照"/"从模板新建"。
 class _FabMenu extends ConsumerStatefulWidget {
   const _FabMenu();
   @override
@@ -178,21 +310,15 @@ class _FabMenuState extends ConsumerState<_FabMenu> {
             ),
           ),
         if (_open) ...[
-          _FabItem(
-            label: '快速拍照',
-            icon: Icons.photo_camera,
-            onTap: () => _closeAnd(_quickCapture),
-          ),
+          _FabItem(label: '空白手册', icon: Icons.note_add, onTap: () => _closeAnd(_createBlank)),
           const SizedBox(height: 8),
-          _FabItem(
-            label: '从模板新建',
-            icon: Icons.dashboard_customize,
-            onTap: () => _closeAnd(_newFromTemplate),
-          ),
+          _FabItem(label: '快速拍照', icon: Icons.photo_camera, onTap: () => _closeAnd(_quickCapture)),
+          const SizedBox(height: 8),
+          _FabItem(label: '从模板新建', icon: Icons.dashboard_customize, onTap: () => _closeAnd(_newFromTemplate)),
           const SizedBox(height: 8),
         ],
         FloatingActionButton(
-          heroTag: 'main-fab', // 避免与小 FAB 冲突
+          heroTag: 'main-fab',
           onPressed: () => setState(() => _open = !_open),
           child: Icon(_open ? Icons.close : Icons.add),
         ),
@@ -200,13 +326,55 @@ class _FabMenuState extends ConsumerState<_FabMenu> {
     );
   }
 
-  /// 关闭菜单，延迟到下一帧再执行回调，避免 setState 重建与导航竞争。
   void _closeAnd(Future<void> Function() action) {
     setState(() => _open = false);
     WidgetsBinding.instance.addPostFrameCallback((_) => action());
   }
 
-  /// 创建空手册 → 进 detail → 自动加第一步 → 调起相机。
+  Future<void> _createBlank() async {
+    final ctl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('新建空白手册'),
+        content: TextField(
+          controller: ctl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '手册标题'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(ctl.text.trim()),
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (name == null || name.isEmpty) {
+      SnapToast.show(context, '已取消', success: false);
+      return;
+    }
+    final repo = await ref.read(manualRepositoryProvider.future);
+    final now = DateTime.now();
+    final m = Manual(
+      id: 'm-${now.millisecondsSinceEpoch}',
+      title: name,
+      coverImagePath: null,
+      isFavorite: false,
+      createdAt: now,
+      updatedAt: now,
+      steps: const [],
+    );
+    await repo.saveManual(m);
+    ref.invalidate(manualListProvider);
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)),
+    );
+  }
+
   Future<void> _quickCapture() async {
     final repo = await ref.read(manualRepositoryProvider.future);
     final now = DateTime.now();
@@ -214,6 +382,7 @@ class _FabMenuState extends ConsumerState<_FabMenu> {
       id: 's-${now.millisecondsSinceEpoch}',
       order: 100,
       title: null, note: '', completed: false, images: const [], optionalFields: const {},
+      createdAt: now,
     );
     final m = Manual(
       id: 'm-${now.millisecondsSinceEpoch}',
@@ -231,9 +400,8 @@ class _FabMenuState extends ConsumerState<_FabMenu> {
     );
   }
 
-  /// 打开模板 sheet → 选中后创建手册 → 进 detail。
   Future<void> _newFromTemplate() async {
-    final t = await showTemplateSheet(context);
+    final t = await showTemplateSheet(context, ref: ref);
     if (t == null || !mounted) return;
     final repo = await ref.read(manualRepositoryProvider.future);
     final now = DateTime.now();
@@ -270,7 +438,6 @@ class _FabItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Label 区域也可点击：解决用户点文字"无效果"的问题
         Material(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),

@@ -1,6 +1,8 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:snapflow/core/db/database.dart' hide Manual, Step, StepImage, Tag;
 import 'package:snapflow/features/manual/domain/entities.dart';
 import 'package:snapflow/features/manual/domain/manual_repository.dart';
 import 'package:snapflow/features/manual/presentation/home_page.dart';
@@ -31,12 +33,23 @@ class _RecordingRepo implements ManualRepository {
   }
   @override
   Future<void> deleteManual(String id) async {}
+  @override
+  Future<List<Tag>> listTags() async => [];
+  @override
+  Future<void> saveTag(Tag tag) async {}
+  @override
+  Future<void> deleteTag(String id) async {}
 }
 
 Widget _wrap(Widget child, {required _RecordingRepo repo}) {
   return ProviderScope(
     overrides: [
       manualRepositoryProvider.overrideWith((_) async => repo),
+      databaseProvider.overrideWith((ref) {
+        final db = AppDatabase(NativeDatabase.memory());
+        ref.onDispose(db.close);
+        return db;
+      }),
     ],
     child: MaterialApp(
       theme: SnapFlowTheme.light(),
@@ -101,12 +114,12 @@ void main() {
     await tester.pumpWidget(_wrap(const HomePage(), repo: repo));
     await tester.pump();
 
-    // 4 个 chip 都应可见（"模板"已移除）
+    // 4 个筛选 chip + 模板/标签管理 ActionChip 都应可见
     expect(find.text('全部'), findsOneWidget);
     expect(find.text('最近'), findsOneWidget);
     expect(find.text('收藏 ⭐'), findsOneWidget);
     expect(find.text('未完成'), findsOneWidget);
-    expect(find.text('模板'), findsNothing, reason: '模板 chip 已移除');
+    expect(find.text('模板'), findsOneWidget, reason: '模板管理 ActionChip');
 
     // 点击"收藏 ⭐"应切换 filter（不崩溃）
     await tester.tap(find.text('收藏 ⭐'));

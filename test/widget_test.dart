@@ -15,6 +15,12 @@ class _NoopRepo implements ManualRepository {
   Future<void> saveManual(Manual manual) async {}
   @override
   Future<void> deleteManual(String id) async {}
+  @override
+  Future<List<Tag>> listTags() async => [];
+  @override
+  Future<void> saveTag(Tag tag) async {}
+  @override
+  Future<void> deleteTag(String id) async {}
 }
 
 void main() {

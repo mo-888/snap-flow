@@ -27,9 +27,13 @@ class ManualDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
+  bool _editingTitle = false;
+  late TextEditingController _titleCtl;
+
   @override
   void initState() {
     super.initState();
+    _titleCtl = TextEditingController();
     if (widget.autoCaptureStepId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -40,7 +44,26 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _titleCtl.dispose();
+    super.dispose();
+  }
+
   String get _manualId => widget.manualId;
+
+  Future<void> _saveTitle(domain.Manual m) async {
+    final newTitle = _titleCtl.text.trim();
+    if (newTitle.isEmpty || newTitle == m.title) {
+      setState(() => _editingTitle = false);
+      return;
+    }
+    final repo = await ref.read(manualRepositoryProvider.future);
+    await repo.saveManual(m.copyWith(title: newTitle, updatedAt: DateTime.now()));
+    ref.invalidate(manualDetailProvider(_manualId));
+    ref.invalidate(manualListProvider);
+    if (mounted) setState(() => _editingTitle = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +72,24 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
         title: async.maybeWhen(
-          data: (m) => Text(m?.title.isNotEmpty == true ? m!.title : '未命名'),
+          data: (m) {
+            if (m == null) return const Text('未命名');
+            if (_editingTitle) {
+              _titleCtl.text = m.title;
+              return TextField(
+                controller: _titleCtl,
+                autofocus: true,
+                decoration: const InputDecoration(border: InputBorder.none),
+                style: Theme.of(context).textTheme.titleLarge,
+                onSubmitted: (_) => _saveTitle(m),
+                onTapOutside: (_) => _saveTitle(m),
+              );
+            }
+            return GestureDetector(
+              onTap: () => setState(() => _editingTitle = true),
+              child: Text(m.title.isEmpty ? '未命名（点击编辑）' : m.title),
+            );
+          },
           orElse: () => const Text('手册'),
         ),
         actions: [
@@ -145,6 +185,7 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
       id: 's-${now.millisecondsSinceEpoch}',
       order: (m.steps.isEmpty ? 100 : m.steps.last.order + 100),
       title: null, note: '', completed: false, images: const [], optionalFields: const {},
+      createdAt: now,
     );
     await repo.saveManual(m.copyWith(steps: [...m.steps, newStep], updatedAt: now));
     ref.invalidate(manualDetailProvider(manualId));
@@ -206,12 +247,20 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
 
   Future<void> _onToggleComplete(domain.Manual m, domain.Step s) async {
     final repo = await ref.read(manualRepositoryProvider.future);
-    final newSteps = m.steps.map((x) => x.id == s.id ? x.copyWith(completed: !x.completed) : x).toList();
-    await repo.saveManual(m.copyWith(steps: newSteps, updatedAt: DateTime.now()));
+    final now = DateTime.now();
+    final newCompleted = !s.completed;
+    final newSteps = m.steps.map((x) {
+      if (x.id != s.id) return x;
+      return x.copyWith(
+        completed: newCompleted,
+        completedAt: newCompleted ? now : null,
+      );
+    }).toList();
+    await repo.saveManual(m.copyWith(steps: newSteps, updatedAt: now));
     ref.invalidate(manualDetailProvider(m.id));
     ref.invalidate(manualListProvider);
     if (mounted) {
-      SnapToast.show(context, !s.completed ? '已完成' : '已撤销', success: true);
+      SnapToast.show(context, newCompleted ? '已完成' : '已撤销', success: true);
     }
   }
 

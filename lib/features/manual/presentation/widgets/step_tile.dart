@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme.dart';
 import '../../domain/entities.dart' as domain;
 
@@ -45,6 +46,12 @@ class StepTile extends StatelessWidget {
             Text('${step.images.length} 图', style: TextStyle(color: c.outline, fontSize: 12)),
             if (hasNote) ...[const SizedBox(width: 8), Text('有说明', style: TextStyle(color: c.outline, fontSize: 12))],
             if (fieldCount > 0) ...[const SizedBox(width: 8), Text('$fieldCount 字段', style: TextStyle(color: c.outline, fontSize: 12))],
+            const SizedBox(width: 8),
+            Text('创建于 ${DateFormat('M/d HH:mm').format(step.createdAt)}', style: TextStyle(color: c.outline, fontSize: 11)),
+            if (step.completedAt != null) ...[
+              const SizedBox(width: 8),
+              Text('完成于 ${DateFormat('M/d HH:mm').format(step.completedAt!)}', style: TextStyle(color: c.outline, fontSize: 11)),
+            ],
           ]),
         ),
         children: [

@@ -1,11 +1,32 @@
 import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../manual/domain/entities.dart';
 
+/// 加载并缓存思源黑体（NotoSansSC），用于 PDF 中文渲染。
+pw.Font? _cachedFont;
+
+Future<pw.Font> _loadChineseFont() async {
+  if (_cachedFont != null) return _cachedFont!;
+  final bytes = await rootBundle.load('assets/fonts/NotoSansSC-Regular.ttf');
+  _cachedFont = pw.Font.ttf(bytes);
+  return _cachedFont!;
+}
+
+typedef FontProvider = Future<pw.Font> Function();
+
 class PdfExporter {
+  /// 字体加载器；测试可注入空实现以跳过 asset bundle。
+  final FontProvider? fontProvider;
+
+  PdfExporter({this.fontProvider});
+
   Future<List<int>> exportToBytes(Manual manual) async {
-    final doc = pw.Document();
+    final chineseFont = await (fontProvider ?? _loadChineseFont)();
+    final theme = pw.ThemeData.withFont(base: chineseFont);
+
+    final doc = pw.Document(theme: theme);
 
     final stepWidgets = <pw.Widget>[];
     for (final s in manual.steps) {
@@ -30,9 +51,10 @@ class PdfExporter {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text('步骤 ${(s.order / 100).round()}: ${s.title ?? '(无标题)'}',
-                  style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  style: pw.TextStyle(font: chineseFont, fontSize: 14, fontWeight: pw.FontWeight.bold)),
               if (s.note.isNotEmpty) pw.SizedBox(height: 4),
-              if (s.note.isNotEmpty) pw.Text(s.note, style: const pw.TextStyle(fontSize: 11)),
+              if (s.note.isNotEmpty)
+                pw.Text(s.note, style: pw.TextStyle(font: chineseFont, fontSize: 11)),
               ...imageWidgets,
             ],
           ),
@@ -48,7 +70,7 @@ class PdfExporter {
           pw.Header(
             level: 0,
             child: pw.Text(manual.title.isEmpty ? '未命名手册' : manual.title,
-                style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                style: pw.TextStyle(font: chineseFont, fontSize: 22, fontWeight: pw.FontWeight.bold)),
           ),
           pw.SizedBox(height: 12),
           ...stepWidgets,

@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:snapflow/core/db/database.dart' hide Manual, Step, StepImage;
 import 'package:snapflow/core/files/file_service.dart';
 import 'package:snapflow/features/export/pdf_exporter.dart';
@@ -29,7 +30,7 @@ void main() {
     );
     await repo.saveManual(m);
 
-    const step = Step(
+    final step = Step(
       id: 's1',
       order: 100,
       title: 'Do thing',
@@ -37,6 +38,7 @@ void main() {
       completed: false,
       images: [],
       optionalFields: {},
+    createdAt: DateTime(2026, 1, 1),
     );
     await repo.saveManual(m.copyWith(steps: [step]));
 
@@ -62,7 +64,9 @@ void main() {
     expect(loaded.steps.first.images.length, 1);
     expect(loaded.steps.first.images.first.originalPath, original);
 
-    final pdf = await PdfExporter().exportToBytes(loaded);
+    final pdf = await PdfExporter(
+      fontProvider: () async => pw.Font.helvetica(),
+    ).exportToBytes(loaded);
     expect(pdf.length, greaterThan(100));
     expect(String.fromCharCodes(pdf.take(4)), equals('%PDF'));
 

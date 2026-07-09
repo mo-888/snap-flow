@@ -3,6 +3,31 @@ import 'package:flutter/foundation.dart';
 const Object _undefined = Object();
 
 @immutable
+class Tag {
+  final String id;
+  final String name;
+  final DateTime createdAt;
+
+  const Tag({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+  });
+
+  Tag copyWith({
+    Object? id = _undefined,
+    Object? name = _undefined,
+    Object? createdAt = _undefined,
+  }) {
+    return Tag(
+      id: id == _undefined ? this.id : id as String,
+      name: name == _undefined ? this.name : name as String,
+      createdAt: createdAt == _undefined ? this.createdAt : createdAt as DateTime,
+    );
+  }
+}
+
+@immutable
 class Manual {
   final String id;
   final String title;
@@ -10,6 +35,9 @@ class Manual {
   final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int sortKey;
+  final List<String> tagIds;
+  final List<Tag> tags;
   final List<Step> steps;
 
   const Manual({
@@ -20,6 +48,9 @@ class Manual {
     required this.createdAt,
     required this.updatedAt,
     required this.steps,
+    this.sortKey = 0,
+    this.tagIds = const [],
+    this.tags = const [],
   });
 
   Manual copyWith({
@@ -30,6 +61,9 @@ class Manual {
     Object? createdAt = _undefined,
     Object? updatedAt = _undefined,
     Object? steps = _undefined,
+    Object? sortKey = _undefined,
+    Object? tagIds = _undefined,
+    Object? tags = _undefined,
   }) {
     return Manual(
       id: id == _undefined ? this.id : id as String,
@@ -45,6 +79,9 @@ class Manual {
       updatedAt:
           updatedAt == _undefined ? this.updatedAt : updatedAt as DateTime,
       steps: steps == _undefined ? this.steps : steps as List<Step>,
+      sortKey: sortKey == _undefined ? this.sortKey : sortKey as int,
+      tagIds: tagIds == _undefined ? this.tagIds : tagIds as List<String>,
+      tags: tags == _undefined ? this.tags : tags as List<Tag>,
     );
   }
 }
@@ -56,6 +93,8 @@ class Step {
   final String? title;
   final String note;
   final bool completed;
+  final DateTime createdAt;
+  final DateTime? completedAt;
   final List<StepImage> images;
   final Map<String, String> optionalFields;
 
@@ -67,6 +106,8 @@ class Step {
     required this.completed,
     required this.images,
     required this.optionalFields,
+    required this.createdAt,
+    this.completedAt,
   });
 
   Step copyWith({
@@ -77,11 +118,13 @@ class Step {
     Object? completed = _undefined,
     Object? images = _undefined,
     Object? optionalFields = _undefined,
+    Object? createdAt = _undefined,
+    Object? completedAt = _undefined,
   }) {
     return Step(
       id: id == _undefined ? this.id : id as String,
       order: order == _undefined ? this.order : order as int,
-      title: title == _undefined ? this.title : title as String?,
+      title: title == _undefined ? this.title : title as String,
       note: note == _undefined ? this.note : note as String,
       completed: completed == _undefined ? this.completed : completed as bool,
       images: images == _undefined ? this.images : images as List<StepImage>,
@@ -89,6 +132,12 @@ class Step {
           optionalFields == _undefined
               ? this.optionalFields
               : optionalFields as Map<String, String>,
+      createdAt:
+          createdAt == _undefined ? this.createdAt : createdAt as DateTime,
+      completedAt:
+          completedAt == _undefined
+              ? this.completedAt
+              : completedAt as DateTime?,
     );
   }
 }

@@ -22,6 +22,15 @@ class _FakeRepo implements ManualRepository {
   Future<void> deleteManual(String id) async {
     _store.removeWhere((m) => m.id == id);
   }
+
+  @override
+  Future<List<Tag>> listTags() async => const [];
+
+  @override
+  Future<void> saveTag(Tag tag) async {}
+
+  @override
+  Future<void> deleteTag(String id) async {}
 }
 
 void main() {

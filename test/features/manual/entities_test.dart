@@ -25,7 +25,7 @@ void main() {
 
   group('Step', () {
     test('copyWith updates note and completed', () {
-      const s = Step(
+      final s = Step(
         id: 's1',
         order: 100,
         title: 't',
@@ -33,6 +33,7 @@ void main() {
         completed: false,
         images: [],
         optionalFields: {},
+      createdAt: DateTime(2026, 1, 1),
       );
       final s2 = s.copyWith(note: 'new', completed: true);
       expect(s2.note, 'new');

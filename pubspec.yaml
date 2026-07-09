@@ -26,6 +26,8 @@ dependencies:
   intl: ^0.19.0
   google_fonts: ^6.2.1
   cupertino_icons: ^1.0.8
+  file_picker: ^8.0.0
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +41,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/templates/builtin_templates.json
+    - assets/fonts/NotoSansSC-Regular.ttf

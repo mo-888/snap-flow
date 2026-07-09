@@ -84,6 +84,7 @@ void main() {
             ),
           ],
           optionalFields: {'param1': 'val1'},
+          createdAt: DateTime(2026, 1, 1),
         ),
       ],
     );

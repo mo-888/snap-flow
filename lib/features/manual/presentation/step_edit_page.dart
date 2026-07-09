@@ -50,6 +50,7 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
       orElse: () => Step(
         id: widget.stepId, order: 0, title: null, note: '', completed: false,
         images: const [], optionalFields: const {},
+        createdAt: DateTime.now(),
       ),
     );
     _fieldRows.clear();
@@ -186,9 +187,9 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
-                  Expanded(child: TextField(controller: _fieldRows[i].keyCtl, decoration: const InputDecoration(hintText: '字段名', isDense: true))),
+                  Expanded(flex: 3, child: TextField(controller: _fieldRows[i].keyCtl, decoration: const InputDecoration(hintText: '字段名', isDense: true))),
                   const SizedBox(width: 6),
-                  Expanded(flex: 12, child: TextField(controller: _fieldRows[i].valCtl, decoration: const InputDecoration(hintText: '值', isDense: true))),
+                  Expanded(flex: 5, child: TextField(controller: _fieldRows[i].valCtl, decoration: const InputDecoration(hintText: '值', isDense: true))),
                   IconButton(
                     icon: const Icon(Icons.close, size: 18, color: Colors.red),
                     onPressed: () => setState(() => _fieldRows.removeAt(i)),

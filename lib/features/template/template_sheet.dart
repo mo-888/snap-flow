@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shared/providers.dart';
 import '../../shared/widgets/bottom_sheet.dart';
 import '../manual/domain/entities.dart';
 import 'template_service.dart';
@@ -7,7 +8,14 @@ import 'template_service.dart';
 /// 显示模板选择 sheet，返回选中的模板（null 表示取消）。
 /// 用返回值代替 onPick 回调，避免 context 生命周期耦合。
 Future<Template?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) async {
-  final svc = TemplateService();
+  if (ref == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('请在 Riverpod 作用域内调用')),
+    );
+    return null;
+  }
+  final db = ref.read(databaseProvider);
+  final svc = TemplateService(db: db);
   List<Template> templates;
   try {
     templates = await svc.listTemplates();
@@ -29,7 +37,7 @@ Future<Template?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) asyn
       child: ListView(
         shrinkWrap: true,
         children: templates.map((t) => ListTile(
-          leading: const Icon(Icons.dashboard_customize),
+          leading: Icon(t.isBuiltin ? Icons.dashboard_customize : Icons.bookmark_added),
           title: Text(t.name),
           subtitle: Text('${t.steps.length} 步 · ${t.description}'),
           onTap: () => Navigator.of(context).pop(t),
@@ -48,5 +56,6 @@ class TemplateStepAdapter {
     completed: false,
     images: const [],
     optionalFields: ts.fields,
+    createdAt: DateTime.fromMillisecondsSinceEpoch(nowMs),
   );
 }

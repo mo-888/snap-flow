@@ -13,7 +13,15 @@ class ManualRepositoryImpl implements ManualRepository {
 
   ManualRepositoryImpl({required this.db, required this.files});
 
-  domain.Manual _rowToManual(Manual row, List<domain.Step> steps) {
+  domain.Tag _rowToTag(Tag row) =>
+      domain.Tag(id: row.id, name: row.name, createdAt: row.createdAt);
+
+  domain.Manual _rowToManual(
+    Manual row,
+    List<domain.Step> steps,
+    List<domain.Tag> tags,
+    List<String> tagIds,
+  ) {
     return domain.Manual(
       id: row.id,
       title: row.title,
@@ -21,6 +29,9 @@ class ManualRepositoryImpl implements ManualRepository {
       isFavorite: row.isFavorite,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      sortKey: row.sortKey,
+      tagIds: tagIds,
+      tags: tags,
       steps: steps,
     );
   }
@@ -32,6 +43,8 @@ class ManualRepositoryImpl implements ManualRepository {
       title: row.title,
       note: row.note,
       completed: row.completed,
+      createdAt: row.createdAt,
+      completedAt: row.completedAt,
       images: images,
       optionalFields:
           Map<String, String>.from(jsonDecode(row.optionalFieldsJson)),
@@ -64,13 +77,31 @@ class ManualRepositoryImpl implements ManualRepository {
     return result;
   }
 
+  Future<(List<domain.Tag>, List<String>)> _loadTagsForManual(
+      String manualId) async {
+    final join = db.select(db.manualTags).join([
+      innerJoin(db.tags, db.tags.id.equalsExp(db.manualTags.tagId)),
+    ])
+      ..where(db.manualTags.manualId.equals(manualId));
+    final rows = await join.get();
+    final tagIds = <String>[];
+    final tagMap = <String, domain.Tag>{};
+    for (final r in rows) {
+      final t = _rowToTag(r.readTable(db.tags));
+      tagIds.add(t.id);
+      tagMap[t.id] = t;
+    }
+    return (tagMap.values.toList(), tagIds);
+  }
+
   @override
   Future<List<domain.Manual>> listManuals() async {
     final manualRows = await db.select(db.manuals).get();
     final result = <domain.Manual>[];
     for (final r in manualRows) {
       final steps = await _loadStepsForManual(r.id);
-      result.add(_rowToManual(r, steps));
+      final (tags, tagIds) = await _loadTagsForManual(r.id);
+      result.add(_rowToManual(r, steps, tags, tagIds));
     }
     return result;
   }
@@ -81,7 +112,8 @@ class ManualRepositoryImpl implements ManualRepository {
         .getSingleOrNull();
     if (row == null) return null;
     final steps = await _loadStepsForManual(id);
-    return _rowToManual(row, steps);
+    final (tags, tagIds) = await _loadTagsForManual(id);
+    return _rowToManual(row, steps, tags, tagIds);
   }
 
   @override
@@ -95,8 +127,20 @@ class ManualRepositoryImpl implements ManualRepository {
               isFavorite: Value(manual.isFavorite),
               createdAt: manual.createdAt,
               updatedAt: manual.updatedAt,
+              sortKey: Value(manual.sortKey),
             ),
           );
+
+      // 重置 tag 关联
+      await (db.delete(db.manualTags)
+            ..where((mt) => mt.manualId.equals(manual.id)))
+          .go();
+      for (final tagId in manual.tagIds) {
+        await db.into(db.manualTags).insert(
+              ManualTagsCompanion.insert(manualId: manual.id, tagId: tagId),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
 
       final existingSteps = await (db.select(db.steps)
             ..where((s) => s.manualId.equals(manual.id)))
@@ -117,6 +161,8 @@ class ManualRepositoryImpl implements ManualRepository {
                 note: Value(s.note),
                 completed: Value(s.completed),
                 optionalFieldsJson: Value(jsonEncode(s.optionalFields)),
+                createdAt: s.createdAt,
+                completedAt: Value(s.completedAt),
               ),
             );
 
@@ -150,5 +196,32 @@ class ManualRepositoryImpl implements ManualRepository {
   Future<void> deleteManual(String id) async {
     await (db.delete(db.manuals)..where((m) => m.id.equals(id))).go();
     await files.deleteManualImages(id);
+  }
+
+  // --- Tag CRUD ---
+
+  @override
+  Future<List<domain.Tag>> listTags() async {
+    final rows = await (db.select(db.tags)
+          ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
+        .get();
+    return rows.map(_rowToTag).toList();
+  }
+
+  @override
+  Future<void> saveTag(domain.Tag tag) async {
+    await db.into(db.tags).insertOnConflictUpdate(
+          TagsCompanion.insert(
+            id: tag.id,
+            name: tag.name,
+            createdAt: tag.createdAt,
+          ),
+        );
+  }
+
+  @override
+  Future<void> deleteTag(String id) async {
+    await (db.delete(db.manualTags)..where((mt) => mt.tagId.equals(id))).go();
+    await (db.delete(db.tags)..where((t) => t.id.equals(id))).go();
   }
 }
