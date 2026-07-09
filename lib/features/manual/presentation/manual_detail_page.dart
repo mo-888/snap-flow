@@ -324,6 +324,7 @@ class _ManualTagStrip extends ConsumerWidget {
     if (next == null) return;
     final repo = await ref.read(manualRepositoryProvider.future);
     await repo.setManualTags(manual.id, next);
+    if (!context.mounted) return;
     ref.invalidate(manualDetailProvider(manual.id));
     ref.invalidate(manualListProvider);
   }
@@ -340,8 +341,10 @@ class _ManualTagStrip extends ConsumerWidget {
               label: Text(t.name),
               onDeleted: () async {
                 final repo = await ref.read(manualRepositoryProvider.future);
-                final next = manual.tagIds.toSet()..remove(t.id);
+                final current = await ref.read(manualDetailProvider(manual.id).future);
+                final next = (current?.tagIds ?? manual.tagIds).toSet()..remove(t.id);
                 await repo.setManualTags(manual.id, next);
+                if (!context.mounted) return;
                 ref.invalidate(manualDetailProvider(manual.id));
                 ref.invalidate(manualListProvider);
               },

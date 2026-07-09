@@ -234,6 +234,7 @@ class ManualRepositoryImpl implements ManualRepository {
       for (final tagId in tagIds) {
         await db.into(db.manualTags).insert(
               ManualTagsCompanion.insert(manualId: manualId, tagId: tagId),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     });
