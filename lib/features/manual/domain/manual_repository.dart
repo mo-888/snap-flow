@@ -10,4 +10,5 @@ abstract class ManualRepository {
   Future<List<Tag>> listTags();
   Future<void> saveTag(Tag tag);
   Future<void> deleteTag(String id);
+  Future<void> setManualTags(String manualId, Set<String> tagIds);
 }

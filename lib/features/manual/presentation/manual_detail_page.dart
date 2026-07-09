@@ -7,6 +7,7 @@ import '../../export/pdf_exporter.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/snap_toast.dart';
 import '../../../shared/providers.dart';
+import '../../tag/presentation/widgets/manual_tag_sheet.dart';
 import '../domain/entities.dart' as domain;
 import 'home_page.dart';
 import 'step_edit_page.dart';
@@ -118,25 +119,32 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
           if (manual == null) {
             return const EmptyState(icon: Icons.error_outline, title: '手册不存在');
           }
-          if (manual.steps.isEmpty) {
-            return const EmptyState(icon: Icons.add_box_outlined, title: '还没有步骤', hint: '点击下方"加步骤"开始记录');
-          }
-          return ReorderableListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 96),
-            itemCount: manual.steps.length,
-            // ignore: deprecated_member_use
-            onReorder: (oldIdx, newIdx) => _onReorder(manual, oldIdx, newIdx),
-            itemBuilder: (_, i) => StepTile(
-              key: ValueKey(manual.steps[i].id),
-              index: i,
-              step: manual.steps[i],
-              onEdit: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => StepEditPage(manualId: manual.id, stepId: manual.steps[i].id),
-              )),
-              onDelete: () => _onDelete(manual, manual.steps[i].id),
-              onDuplicate: () => _onDuplicate(manual, manual.steps[i]),
-              onToggleComplete: () => _onToggleComplete(manual, manual.steps[i]),
-            ),
+          return Column(
+            children: [
+              _ManualTagStrip(manual: manual),
+              const SizedBox(height: 4),
+              Expanded(
+                child: manual.steps.isEmpty
+                    ? const EmptyState(icon: Icons.add_box_outlined, title: '还没有步骤', hint: '点击下方"加步骤"开始记录')
+                    : ReorderableListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 96),
+                        itemCount: manual.steps.length,
+                        // ignore: deprecated_member_use
+                        onReorder: (oldIdx, newIdx) => _onReorder(manual, oldIdx, newIdx),
+                        itemBuilder: (_, i) => StepTile(
+                          key: ValueKey(manual.steps[i].id),
+                          index: i,
+                          step: manual.steps[i],
+                          onEdit: () => Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => StepEditPage(manualId: manual.id, stepId: manual.steps[i].id),
+                          )),
+                          onDelete: () => _onDelete(manual, manual.steps[i].id),
+                          onDuplicate: () => _onDuplicate(manual, manual.steps[i]),
+                          onToggleComplete: () => _onToggleComplete(manual, manual.steps[i]),
+                        ),
+                      ),
+              ),
+            ],
           );
         },
       ),
@@ -301,5 +309,50 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
       if (mounted) Navigator.of(context).pop();
       if (mounted) SnapToast.show(context, '导出失败：$e', error: true);
     }
+  }
+}
+
+class _ManualTagStrip extends ConsumerWidget {
+  final domain.Manual manual;
+  const _ManualTagStrip({required this.manual});
+
+  Future<void> _edit(BuildContext context, WidgetRef ref) async {
+    final next = await showManualTagSheet(
+      context,
+      initial: manual.tagIds.toSet(),
+    );
+    if (next == null) return;
+    final repo = await ref.read(manualRepositoryProvider.future);
+    await repo.setManualTags(manual.id, next);
+    ref.invalidate(manualDetailProvider(manual.id));
+    ref.invalidate(manualListProvider);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Wrap(
+        spacing: 6, runSpacing: 6,
+        children: [
+          for (final t in manual.tags)
+            InputChip(
+              label: Text(t.name),
+              onDeleted: () async {
+                final repo = await ref.read(manualRepositoryProvider.future);
+                final next = manual.tagIds.toSet()..remove(t.id);
+                await repo.setManualTags(manual.id, next);
+                ref.invalidate(manualDetailProvider(manual.id));
+                ref.invalidate(manualListProvider);
+              },
+            ),
+          ActionChip(
+            avatar: const Icon(Icons.add, size: 16),
+            label: const Text('添加标签'),
+            onPressed: () => _edit(context, ref),
+          ),
+        ],
+      ),
+    );
   }
 }

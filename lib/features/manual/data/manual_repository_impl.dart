@@ -224,4 +224,18 @@ class ManualRepositoryImpl implements ManualRepository {
     await (db.delete(db.manualTags)..where((mt) => mt.tagId.equals(id))).go();
     await (db.delete(db.tags)..where((t) => t.id.equals(id))).go();
   }
+
+  @override
+  Future<void> setManualTags(String manualId, Set<String> tagIds) async {
+    await db.transaction(() async {
+      await (db.delete(db.manualTags)
+            ..where((mt) => mt.manualId.equals(manualId)))
+          .go();
+      for (final tagId in tagIds) {
+        await db.into(db.manualTags).insert(
+              ManualTagsCompanion.insert(manualId: manualId, tagId: tagId),
+            );
+      }
+    });
+  }
 }

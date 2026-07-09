@@ -42,6 +42,8 @@ class _TrackRepo implements ManualRepository {
   Future<void> deleteTag(String id) async {
     tags.removeWhere((t) => t.id == id);
   }
+  @override
+  Future<void> setManualTags(String manualId, Set<String> tagIds) async {}
 }
 
 Manual _sampleManual() {

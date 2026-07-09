@@ -26,6 +26,8 @@ class _StubRepo implements ManualRepository {
   Future<void> saveTag(Tag tag) async {}
   @override
   Future<void> deleteTag(String id) async {}
+  @override
+  Future<void> setManualTags(String manualId, Set<String> tagIds) async {}
 }
 
 Manual _stub(String id, String title, int steps) => Manual(

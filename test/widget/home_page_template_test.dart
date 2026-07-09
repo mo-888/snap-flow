@@ -39,6 +39,8 @@ class _RecordingRepo implements ManualRepository {
   Future<void> saveTag(Tag tag) async {}
   @override
   Future<void> deleteTag(String id) async {}
+  @override
+  Future<void> setManualTags(String manualId, Set<String> tagIds) async {}
 }
 
 Widget _wrap(Widget child, {required _RecordingRepo repo}) {

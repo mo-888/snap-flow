@@ -31,6 +31,8 @@ class _FakeRepo implements ManualRepository {
 
   @override
   Future<void> deleteTag(String id) async {}
+  @override
+  Future<void> setManualTags(String manualId, Set<String> tagIds) async {}
 }
 
 void main() {
