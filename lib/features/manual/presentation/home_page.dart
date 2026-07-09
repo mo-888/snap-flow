@@ -338,8 +338,8 @@ Future<void> _createBlank(BuildContext context, WidgetRef ref) async {
     createdAt: now, updatedAt: now, steps: const [],
   );
   await repo.saveManual(m);
-  ref.invalidate(manualListProvider);
   if (!context.mounted) return;
+  ref.invalidate(manualListProvider);
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)));
 }
 
@@ -357,8 +357,8 @@ Future<void> _quickCapture(BuildContext context, WidgetRef ref) async {
     createdAt: now, updatedAt: now, steps: [newStep],
   );
   await repo.saveManual(m);
-  ref.invalidate(manualListProvider);
   if (!context.mounted) return;
+  ref.invalidate(manualListProvider);
   Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => ManualDetailPage(manualId: m.id, autoCaptureStepId: newStep.id)));
 }
@@ -376,33 +376,49 @@ Future<void> _newFromTemplate(BuildContext context, WidgetRef ref, Template t) a
     createdAt: now, updatedAt: now, steps: steps,
   );
   await repo.saveManual(m);
-  ref.invalidate(manualListProvider);
   if (!context.mounted) return;
+  ref.invalidate(manualListProvider);
   SnapToast.show(context, '已基于"${t.name}"创建', success: true);
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)));
 }
 
-class _Fab extends ConsumerWidget {
+class _Fab extends ConsumerStatefulWidget {
   const _Fab();
 
+  @override
+  ConsumerState<_Fab> createState() => _FabState();
+}
+
+class _FabState extends ConsumerState<_Fab> {
+  bool _busy = false;
+
   Future<void> _open(BuildContext context, WidgetRef ref) async {
-    final pick = await showTemplateSheet(context, ref: ref);
-    if (pick == null || !context.mounted) return;
-    switch (pick.choice) {
-      case TemplateChoice.blank:
-        return _createBlank(context, ref);
-      case TemplateChoice.quickCapture:
-        return _quickCapture(context, ref);
-      case TemplateChoice.fromTemplate:
-        if (pick.template != null) return _newFromTemplate(context, ref, pick.template!);
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final pick = await showTemplateSheet(context, ref: ref);
+      if (pick == null || !context.mounted) return;
+      switch (pick.choice) {
+        case TemplateChoice.blank:
+          await _createBlank(context, ref);
+          return;
+        case TemplateChoice.quickCapture:
+          await _quickCapture(context, ref);
+          return;
+        case TemplateChoice.fromTemplate:
+          if (pick.template != null) await _newFromTemplate(context, ref, pick.template!);
+          return;
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return FloatingActionButton(
       heroTag: 'main-fab',
-      onPressed: () => _open(context, ref),
+      onPressed: _busy ? null : () => _open(context, ref),
       child: const Icon(Icons.add),
     );
   }
