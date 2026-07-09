@@ -1,5 +1,11 @@
 [
   {
+    "id": "t-blank",
+    "name": "空白手册",
+    "description": "无步骤",
+    "steps": []
+  },
+  {
     "id": "t-electrical-inspection",
     "name": "电力巡检",
     "description": "标准现场巡检流程",
