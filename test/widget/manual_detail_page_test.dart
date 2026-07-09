@@ -9,15 +9,27 @@ import 'package:snapflow/features/manual/presentation/manual_detail_page.dart';
 import 'package:snapflow/shared/providers.dart';
 
 class _StubRepo implements ManualRepository {
-  final domain.Manual m;
-  _StubRepo(this.m);
+  final List<domain.Manual> _manuals;
+  _StubRepo(domain.Manual m) : _manuals = [m];
 
   @override
-  Future<List<domain.Manual>> listManuals() async => [m];
+  Future<List<domain.Manual>> listManuals() async => List.unmodifiable(_manuals);
   @override
-  Future<domain.Manual?> getManual(String id) async => m.id == id ? m : null;
+  Future<domain.Manual?> getManual(String id) async {
+    for (final m in _manuals) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
   @override
-  Future<void> saveManual(domain.Manual manual) async {}
+  Future<void> saveManual(domain.Manual manual) async {
+    final idx = _manuals.indexWhere((m) => m.id == manual.id);
+    if (idx >= 0) {
+      _manuals[idx] = manual;
+    } else {
+      _manuals.add(manual);
+    }
+  }
   @override
   Future<void> deleteManual(String id) async {}
   @override
@@ -57,5 +69,38 @@ void main() {
     await tester.pump();
     expect(find.text('第一步', skipOffstage: false), findsOneWidget);
     expect(find.text('第二步', skipOffstage: false), findsOneWidget);
+  });
+
+  testWidgets('duplicate step creates new step with same fields', (tester) async {
+    final baseStep = domain.Step(
+      id: 's-orig', order: 200,
+      title: '原标题', note: '原说明',
+      completed: false, images: const [],
+      optionalFields: const {'电压': '380V'},
+      createdAt: DateTime(2026, 1, 1),
+    );
+    final m = domain.Manual(
+      id: 'm1', title: 'M', coverImagePath: null, isFavorite: false,
+      createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1),
+      steps: [baseStep],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [manualRepositoryProvider.overrideWith((_) async => _StubRepo(m))],
+        child: MaterialApp(
+          theme: SnapFlowTheme.light(),
+          home: const ManualDetailPage(manualId: 'm1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('原标题'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('复制'));
+    await tester.pumpAndSettle();
+    expect(find.text('原标题'), findsNWidgets(2));
+    // SnapToast schedules a 2400ms Timer; drain it via the fake-async clock
+    // so the test framework doesn't complain about a pending Timer on dispose.
+    await tester.binding.delayed(const Duration(milliseconds: 2500));
   });
 }

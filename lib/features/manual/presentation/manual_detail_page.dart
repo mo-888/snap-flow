@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
+import 'package:uuid/uuid.dart';
 import '../../export/pdf_exporter.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/snap_toast.dart';
@@ -10,6 +11,8 @@ import '../domain/entities.dart' as domain;
 import 'home_page.dart';
 import 'step_edit_page.dart';
 import 'widgets/step_tile.dart';
+
+const _uuid = Uuid();
 
 final manualDetailProvider = FutureProvider.family<domain.Manual?, String>((ref, id) async {
   final repo = await ref.watch(manualRepositoryProvider.future);
@@ -232,17 +235,25 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
   }
 
   Future<void> _onDuplicate(domain.Manual m, domain.Step s) async {
+    if (!mounted) return;
     final now = DateTime.now();
+    final newImages = [
+      for (final img in s.images)
+        img.copyWith(id: _uuid.v4()),
+    ];
     final dup = s.copyWith(
       id: 's-${now.millisecondsSinceEpoch}-dup',
-      order: s.order + 50,
-      images: const [],
+      order: s.order + 1,
+      images: newImages,
+      completed: false,
+      completedAt: null,
     );
-    final repo = await ref.read(manualRepositoryProvider.future);
     final newSteps = [...m.steps, dup]..sort((a, b) => a.order.compareTo(b.order));
+    final repo = await ref.read(manualRepositoryProvider.future);
     await repo.saveManual(m.copyWith(steps: newSteps, updatedAt: now));
     ref.invalidate(manualDetailProvider(m.id));
     ref.invalidate(manualListProvider);
+    if (mounted) SnapToast.show(context, '已复制', success: true);
   }
 
   Future<void> _onToggleComplete(domain.Manual m, domain.Step s) async {
