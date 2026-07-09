@@ -3,8 +3,6 @@ import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../features/capture/image_capture_service.dart';
-import '../../../features/voice/voice_button.dart';
-import '../../../features/voice/voice_to_text_service.dart';
 import '../../../shared/providers.dart';
 import '../domain/entities.dart';
 import 'manual_detail_page.dart';
@@ -132,19 +130,17 @@ class _StepEditPageState extends ConsumerState<StepEditPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _FieldWithMic(
+          _PlainField(
             label: '标题',
             placeholder: '例如：关闭总闸',
             controller: _titleCtl,
-            onMicResult: (t) => setState(() => _titleCtl.text = t),
           ),
           const SizedBox(height: 16),
-          _FieldWithMic(
+          _PlainField(
             label: '说明',
-            placeholder: '详细描述这一步要做什么...\n\n可用右侧 🎤 语音输入',
+            placeholder: '详细描述这一步要做什么...',
             controller: _noteCtl,
             maxLines: 5,
-            onMicResult: (t) => setState(() => _noteCtl.text = _noteCtl.text.isEmpty ? t : '${_noteCtl.text} $t'),
           ),
           const SizedBox(height: 16),
           Row(
@@ -221,17 +217,15 @@ class _FieldRow {
   _FieldRow({required this.keyCtl, required this.valCtl});
 }
 
-class _FieldWithMic extends StatelessWidget {
+class _PlainField extends StatelessWidget {
   final String label;
   final String placeholder;
   final TextEditingController controller;
   final int maxLines;
-  final void Function(String) onMicResult;
-  const _FieldWithMic({
+  const _PlainField({
     required this.label,
     required this.placeholder,
     required this.controller,
-    required this.onMicResult,
     this.maxLines = 1,
   });
 
@@ -242,21 +236,10 @@ class _FieldWithMic extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
-        Stack(
-          children: [
-            TextField(
-              controller: controller,
-              maxLines: maxLines,
-              decoration: InputDecoration(hintText: placeholder),
-            ),
-            Positioned(
-              right: 8, top: maxLines == 1 ? 6 : 8,
-              child: VoiceButton(
-                service: VoiceToTextService(asr: FakeAsr()),
-                onResult: onMicResult,
-              ),
-            ),
-          ],
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(hintText: placeholder),
         ),
       ],
     );
