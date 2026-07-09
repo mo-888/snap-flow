@@ -8,9 +8,14 @@ allprojects {
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
-            val androidExt = project.extensions.findByName("android") as? com.android.build.gradle.BaseExtension
-            if (androidExt != null && androidExt.compileSdkVersion == 34) {
-                androidExt.compileSdkVersion = 36
+            val androidExt = project.extensions.findByName("android")
+            if (androidExt != null) {
+                val getter = androidExt.javaClass.getMethod("getCompileSdkVersion")
+                val current = getter.invoke(androidExt) as? String
+                if (current == "android-34") {
+                    val setter = androidExt.javaClass.getMethod("setCompileSdkVersion", String::class.java)
+                    setter.invoke(androidExt, "android-36")
+                }
             }
         }
     }
