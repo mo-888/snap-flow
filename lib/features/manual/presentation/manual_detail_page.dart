@@ -16,13 +16,35 @@ final manualDetailProvider = FutureProvider.family<domain.Manual?, String>((ref,
   return repo.getManual(id);
 });
 
-class ManualDetailPage extends ConsumerWidget {
+class ManualDetailPage extends ConsumerStatefulWidget {
   final String manualId;
-  const ManualDetailPage({super.key, required this.manualId});
+  /// 进入后自动打开该 step 编辑页（来自"快速拍照"流程）。
+  final String? autoCaptureStepId;
+  const ManualDetailPage({super.key, required this.manualId, this.autoCaptureStepId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(manualDetailProvider(manualId));
+  ConsumerState<ManualDetailPage> createState() => _ManualDetailPageState();
+}
+
+class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoCaptureStepId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => StepEditPage(manualId: widget.manualId, stepId: widget.autoCaptureStepId!),
+        ));
+      });
+    }
+  }
+
+  String get _manualId => widget.manualId;
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(manualDetailProvider(_manualId));
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
@@ -35,11 +57,15 @@ class ManualDetailPage extends ConsumerWidget {
             data: (m) => IconButton(
               icon: Icon(m?.isFavorite == true ? Icons.star : Icons.star_border,
                   color: m?.isFavorite == true ? Theme.of(context).colorScheme.tertiary : null),
-              onPressed: () => _toggleFav(ref, m),
+              onPressed: () => _toggleFav(m),
             ),
             orElse: () => const SizedBox.shrink(),
           ),
-          IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: '导出 PDF',
+            onPressed: () => _exportPdf(_manualId),
+          ),
         ],
       ),
       body: async.when(
@@ -56,7 +82,7 @@ class ManualDetailPage extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             itemCount: manual.steps.length,
             // ignore: deprecated_member_use
-            onReorder: (oldIdx, newIdx) => _onReorder(ref, manual, oldIdx, newIdx),
+            onReorder: (oldIdx, newIdx) => _onReorder(manual, oldIdx, newIdx),
             itemBuilder: (_, i) => StepTile(
               key: ValueKey(manual.steps[i].id),
               index: i,
@@ -64,9 +90,9 @@ class ManualDetailPage extends ConsumerWidget {
               onEdit: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => StepEditPage(manualId: manual.id, stepId: manual.steps[i].id),
               )),
-              onDelete: () => _onDelete(context, ref, manual, manual.steps[i].id),
-              onDuplicate: () => _onDuplicate(ref, manual, manual.steps[i]),
-              onToggleComplete: () => _onToggleComplete(context, ref, manual, manual.steps[i]),
+              onDelete: () => _onDelete(manual, manual.steps[i].id),
+              onDuplicate: () => _onDuplicate(manual, manual.steps[i]),
+              onToggleComplete: () => _onToggleComplete(manual, manual.steps[i]),
             ),
           );
         },
@@ -79,7 +105,7 @@ class ManualDetailPage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _onAddStep(context, ref, manualId),
+                    onPressed: () => _onAddStep(_manualId),
                     icon: const Icon(Icons.add),
                     label: const Text('加步骤'),
                   ),
@@ -87,7 +113,7 @@ class ManualDetailPage extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _exportPdf(context, ref, manualId),
+                    onPressed: () => _exportPdf(_manualId),
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text('导出 PDF'),
                   ),
@@ -101,7 +127,7 @@ class ManualDetailPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggleFav(WidgetRef ref, domain.Manual? m) async {
+  Future<void> _toggleFav(domain.Manual? m) async {
     if (m == null) return;
     final repo = await ref.read(manualRepositoryProvider.future);
     await repo.saveManual(m.copyWith(isFavorite: !m.isFavorite));
@@ -109,11 +135,11 @@ class ManualDetailPage extends ConsumerWidget {
     ref.invalidate(manualListProvider);
   }
 
-  Future<void> _onAddStep(BuildContext context, WidgetRef ref, String manualId) async {
+  Future<void> _onAddStep(String manualId) async {
     final repo = await ref.read(manualRepositoryProvider.future);
     final m = await repo.getManual(manualId);
     if (m == null) return;
-    if (!context.mounted) return;
+    if (!mounted) return;
     final now = DateTime.now();
     final newStep = domain.Step(
       id: 's-${now.millisecondsSinceEpoch}',
@@ -123,14 +149,14 @@ class ManualDetailPage extends ConsumerWidget {
     await repo.saveManual(m.copyWith(steps: [...m.steps, newStep], updatedAt: now));
     ref.invalidate(manualDetailProvider(manualId));
     ref.invalidate(manualListProvider);
-    if (context.mounted) {
+    if (mounted) {
       await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => StepEditPage(manualId: manualId, stepId: newStep.id),
       ));
     }
   }
 
-  Future<void> _onReorder(WidgetRef ref, domain.Manual m, int oldIdx, int newIdx) async {
+  Future<void> _onReorder(domain.Manual m, int oldIdx, int newIdx) async {
     final list = [...m.steps];
     final item = list.removeAt(oldIdx);
     final insertIdx = newIdx > oldIdx ? newIdx - 1 : newIdx;
@@ -142,7 +168,7 @@ class ManualDetailPage extends ConsumerWidget {
     ref.invalidate(manualListProvider);
   }
 
-  Future<void> _onDelete(BuildContext context, WidgetRef ref, domain.Manual m, String stepId) async {
+  Future<void> _onDelete(domain.Manual m, String stepId) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -161,10 +187,10 @@ class ManualDetailPage extends ConsumerWidget {
     ));
     ref.invalidate(manualDetailProvider(m.id));
     ref.invalidate(manualListProvider);
-    if (context.mounted) SnapToast.show(context, '已删除', success: true);
+    if (mounted) SnapToast.show(context, '已删除', success: true);
   }
 
-  Future<void> _onDuplicate(WidgetRef ref, domain.Manual m, domain.Step s) async {
+  Future<void> _onDuplicate(domain.Manual m, domain.Step s) async {
     final now = DateTime.now();
     final dup = s.copyWith(
       id: 's-${now.millisecondsSinceEpoch}-dup',
@@ -178,21 +204,21 @@ class ManualDetailPage extends ConsumerWidget {
     ref.invalidate(manualListProvider);
   }
 
-  Future<void> _onToggleComplete(BuildContext context, WidgetRef ref, domain.Manual m, domain.Step s) async {
+  Future<void> _onToggleComplete(domain.Manual m, domain.Step s) async {
     final repo = await ref.read(manualRepositoryProvider.future);
     final newSteps = m.steps.map((x) => x.id == s.id ? x.copyWith(completed: !x.completed) : x).toList();
     await repo.saveManual(m.copyWith(steps: newSteps, updatedAt: DateTime.now()));
     ref.invalidate(manualDetailProvider(m.id));
     ref.invalidate(manualListProvider);
-    if (context.mounted) {
+    if (mounted) {
       SnapToast.show(context, !s.completed ? '已完成' : '已撤销', success: true);
     }
   }
 
-  Future<void> _exportPdf(BuildContext context, WidgetRef ref, String manualId) async {
+  Future<void> _exportPdf(String manualId) async {
     final repo = await ref.read(manualRepositoryProvider.future);
     final m = await repo.getManual(manualId);
-    if (m == null || !context.mounted) return;
+    if (m == null || !mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -202,14 +228,14 @@ class ManualDetailPage extends ConsumerWidget {
     );
     try {
       final bytes = await PdfExporter().exportToBytes(m);
-      if (context.mounted) Navigator.of(context).pop();
-      if (context.mounted) {
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
         SnapToast.show(context, 'PDF 已生成（${bytes.length ~/ 1024} KB）', success: true);
       }
       await Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: '${m.title}.pdf');
     } catch (e) {
-      if (context.mounted) Navigator.of(context).pop();
-      if (context.mounted) SnapToast.show(context, '导出失败：$e', error: true);
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) SnapToast.show(context, '导出失败：$e', error: true);
     }
   }
 }

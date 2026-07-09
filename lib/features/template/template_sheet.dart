@@ -4,21 +4,37 @@ import '../../shared/widgets/bottom_sheet.dart';
 import '../manual/domain/entities.dart';
 import 'template_service.dart';
 
-Future<void> showTemplateSheet(BuildContext context, WidgetRef ref, {required void Function(Template) onPick}) async {
+/// 显示模板选择 sheet，返回选中的模板（null 表示取消）。
+/// 用返回值代替 onPick 回调，避免 context 生命周期耦合。
+Future<Template?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) async {
   final svc = TemplateService();
-  final templates = await svc.listTemplates();
-  if (!context.mounted) return;
-  await SnapSheet.show(
+  List<Template> templates;
+  try {
+    templates = await svc.listTemplates();
+  } catch (e) {
+    if (!context.mounted) return null;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('加载模板失败：$e')),
+    );
+    return null;
+  }
+  if (!context.mounted) return null;
+  return SnapSheet.show<Template>(
     context,
     title: '选择模板',
     subtitle: '基于模板快速创建手册',
-    child: Column(
-      children: templates.map((t) => ListTile(
-        leading: const Icon(Icons.dashboard_customize),
-        title: Text(t.name),
-        subtitle: Text('${t.steps.length} 步 · ${t.description}'),
-        onTap: () { Navigator.of(context).pop(); onPick(t); },
-      )).toList(),
+    child: Material(
+      // 单独包 Material，ListTile ink splashes 才能正确显示（不被外层 surface 颜色覆盖）
+      color: Colors.transparent,
+      child: ListView(
+        shrinkWrap: true,
+        children: templates.map((t) => ListTile(
+          leading: const Icon(Icons.dashboard_customize),
+          title: Text(t.name),
+          subtitle: Text('${t.steps.length} 步 · ${t.description}'),
+          onTap: () => Navigator.of(context).pop(t),
+        )).toList(),
+      ),
     ),
   );
 }

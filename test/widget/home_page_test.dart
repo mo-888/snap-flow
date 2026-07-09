@@ -5,6 +5,7 @@ import 'package:snapflow/features/manual/domain/entities.dart';
 import 'package:snapflow/features/manual/domain/manual_repository.dart';
 import 'package:snapflow/features/manual/presentation/home_page.dart';
 import 'package:snapflow/shared/providers.dart';
+import 'package:snapflow/core/theme.dart';
 
 class _StubRepo implements ManualRepository {
   final List<Manual> manuals;
@@ -49,7 +50,7 @@ void main() {
         overrides: [
           manualRepositoryProvider.overrideWith((_) async => _StubRepo([])),
         ],
-        child: const MaterialApp(home: HomePage()),
+        child: MaterialApp(theme: SnapFlowTheme.light(), home: const HomePage()),
       ),
     );
     await tester.pump();
@@ -62,7 +63,7 @@ void main() {
         overrides: [
           manualRepositoryProvider.overrideWith((_) async => _StubRepo([_stub('m1', '巡检SOP', 3)])),
         ],
-        child: const MaterialApp(home: HomePage()),
+        child: MaterialApp(theme: SnapFlowTheme.light(), home: const HomePage()),
       ),
     );
     await tester.pump();
