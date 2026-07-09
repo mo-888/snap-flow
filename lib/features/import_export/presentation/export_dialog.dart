@@ -32,23 +32,28 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            RadioListTile<_ExportScope>(
-              value: _ExportScope.all,
+            RadioGroup<_ExportScope>(
               groupValue: _scope,
-              title: const Text('全部手册'),
-              onChanged: (v) => setState(() => _scope = v!),
-            ),
-            RadioListTile<_ExportScope>(
-              value: _ExportScope.favorite,
-              groupValue: _scope,
-              title: const Text('仅收藏'),
-              onChanged: (v) => setState(() => _scope = v!),
-            ),
-            RadioListTile<_ExportScope>(
-              value: _ExportScope.withTag,
-              groupValue: _scope,
-              title: const Text('按标签'),
-              onChanged: (v) => setState(() => _scope = v!),
+              onChanged: (v) {
+                if (v != null) setState(() => _scope = v);
+              },
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<_ExportScope>(
+                    value: _ExportScope.all,
+                    title: Text('全部手册'),
+                  ),
+                  RadioListTile<_ExportScope>(
+                    value: _ExportScope.favorite,
+                    title: Text('仅收藏'),
+                  ),
+                  RadioListTile<_ExportScope>(
+                    value: _ExportScope.withTag,
+                    title: Text('按标签'),
+                  ),
+                ],
+              ),
             ),
             if (_scope == _ExportScope.withTag)
               Padding(

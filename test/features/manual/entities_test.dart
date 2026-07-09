@@ -31,8 +31,8 @@ void main() {
         title: 't',
         note: '',
         completed: false,
-        images: [],
-        optionalFields: {},
+        images: const [],
+        optionalFields: const {},
       createdAt: DateTime(2026, 1, 1),
       );
       final s2 = s.copyWith(note: 'new', completed: true);

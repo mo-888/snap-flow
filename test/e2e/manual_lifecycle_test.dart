@@ -36,8 +36,8 @@ void main() {
       title: 'Do thing',
       note: 'Carefully',
       completed: false,
-      images: [],
-      optionalFields: {},
+      images: const [],
+      optionalFields: const {},
     createdAt: DateTime(2026, 1, 1),
     );
     await repo.saveManual(m.copyWith(steps: [step]));

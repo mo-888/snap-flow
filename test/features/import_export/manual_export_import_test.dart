@@ -93,7 +93,7 @@ void main() {
     });
 
     test('countFromJson 正确计数', () {
-      final json = '{"version":1,"manuals":[{},{},{}]}';
+      const json = '{"version":1,"manuals":[{},{},{}]}';
       expect(ManualImporter.countFromJson(json), 3);
     });
 
@@ -110,7 +110,7 @@ void main() {
       final json = await ManualExporter().toJson([orig]);
 
       final repo = _TrackRepo();
-      final tmpRoot = '/tmp/snapflow_test_struct';
+      const tmpRoot = '/tmp/snapflow_test_struct';
       final importer = ManualImporter(repo: repo, rootDir: tmpRoot);
 
       final count = await importer.importFromJson(json);
@@ -144,7 +144,7 @@ void main() {
     });
 
     test('空 manuals 数组导入 0 本', () async {
-      final json = '{"version":1,"manuals":[]}';
+      const json = '{"version":1,"manuals":[]}';
       final repo = _TrackRepo();
       final importer = ManualImporter(repo: repo, rootDir: '/tmp/snapflow_test_empty');
       final count = await importer.importFromJson(json);

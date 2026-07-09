@@ -265,13 +265,22 @@ class _SortSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const ListTile(title: Text('排序方式', style: TextStyle(fontWeight: FontWeight.w700))),
-          for (final s in ManualSort.values)
-            RadioListTile<ManualSort>(
-              value: s,
-              groupValue: current,
-              title: Text(_label(s)),
-              onChanged: (v) => Navigator.of(context).pop(v),
+          RadioGroup<ManualSort>(
+            groupValue: current,
+            onChanged: (v) {
+              if (v != null) Navigator.of(context).pop(v);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final s in ManualSort.values)
+                  RadioListTile<ManualSort>(
+                    value: s,
+                    title: Text(_label(s)),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
