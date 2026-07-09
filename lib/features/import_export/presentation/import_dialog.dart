@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' hide Step;
@@ -76,7 +77,7 @@ class _ImportDialogState extends ConsumerState<ImportDialog> {
     final f = result.files.first;
     String? content;
     if (f.bytes != null) {
-      content = String.fromCharCodes(f.bytes!);
+      content = utf8.decode(f.bytes!, allowMalformed: true);
     } else if (f.path != null) {
       content = await File(f.path!).readAsString();
     }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:snapflow/features/import_export/data/manual_exporter.dart';
 import 'package:snapflow/features/import_export/data/manual_importer.dart';
@@ -157,6 +159,29 @@ void main() {
       final importer = ManualImporter(repo: repo, rootDir: '/tmp/snapflow_test_bad');
       expect(() => importer.importFromJson('[]'),
           throwsA(isA<FormatException>()));
+    });
+
+    test('CJK content round-trip when bytes are UTF-8', () async {
+      final now = DateTime(2026, 1, 1);
+      final manual = Manual(
+        id: 'm-cjk',
+        title: '巡检手册 - 中文测试',
+        coverImagePath: null,
+        isFavorite: false,
+        createdAt: now,
+        updatedAt: now,
+        steps: const [],
+        tags: [
+          Tag(id: 't1', name: '电力', createdAt: now),
+          Tag(id: 't2', name: '运维', createdAt: now),
+        ],
+        tagIds: const ['t1', 't2'],
+      );
+      final json = await ManualExporter().toJson([manual]);
+      final bytes = utf8.encode(json); // simulates file_picker handing utf-8 bytes
+      final reconstructed = utf8.decode(bytes);
+      expect(reconstructed, json);
+      expect(ManualImporter.countFromJson(reconstructed), 1);
     });
   });
 }
