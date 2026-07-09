@@ -9,17 +9,19 @@ import 'package:snapflow/core/theme.dart';
 
 class _StubRepo implements ManualRepository {
   final List<Manual> manuals;
+  final List<String> deletedIds = [];
   _StubRepo(this.manuals);
 
   @override
-  Future<List<Manual>> listManuals() async => manuals;
+  Future<List<Manual>> listManuals() async =>
+      manuals.where((m) => !deletedIds.contains(m.id)).toList();
   @override
   Future<Manual?> getManual(String id) async =>
       manuals.where((m) => m.id == id).cast<Manual?>().firstOrNull;
   @override
   Future<void> saveManual(Manual manual) async {}
   @override
-  Future<void> deleteManual(String id) async {}
+  Future<void> deleteManual(String id) async => deletedIds.add(id);
   @override
   Future<List<Tag>> listTags() async => [];
   @override
@@ -78,5 +80,32 @@ void main() {
     await tester.pump();
     expect(find.text('巡检SOP'), findsOneWidget);
     expect(find.textContaining('3 步'), findsOneWidget);
+  });
+
+  testWidgets('Swipe manual card, confirm, deletes and refreshes list', (tester) async {
+    final repo = _StubRepo([_stub('m1', '巡检SOP', 3)]);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          manualRepositoryProvider.overrideWith((_) async => repo),
+        ],
+        child: MaterialApp(theme: SnapFlowTheme.light(), home: const HomePage()),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('巡检SOP'), findsOneWidget);
+
+    await tester.drag(find.text('巡检SOP'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('删除手册？'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '删除'));
+    await tester.pumpAndSettle();
+
+    expect(repo.deletedIds, contains('m1'));
+    expect(find.text('巡检SOP'), findsNothing);
+    // SnapToast schedules a 2400ms Timer; drain it so the test framework
+    // doesn't complain about a pending Timer on dispose.
+    await tester.binding.delayed(const Duration(milliseconds: 2500));
   });
 }

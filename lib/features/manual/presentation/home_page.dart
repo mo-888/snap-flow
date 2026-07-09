@@ -110,6 +110,26 @@ class HomePage extends ConsumerWidget {
       ref.invalidate(manualListProvider);
     }
 
+    Future<bool> confirmDeleteManual(Manual m) async {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('删除手册？'),
+          content: Text('将永久删除《${m.title.isEmpty ? '未命名' : m.title}》及其所有图片，此操作无法撤销。'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+          ],
+        ),
+      );
+      if (ok != true) return false;
+      final repo = await ref.read(manualRepositoryProvider.future);
+      await repo.deleteManual(m.id);
+      ref.invalidate(manualListProvider);
+      if (context.mounted) SnapToast.show(context, '已删除', success: true);
+      return true;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('我的手册'),
@@ -203,12 +223,28 @@ class HomePage extends ConsumerWidget {
                   builder: (_, c) {
                     final cols = c.maxWidth < 360 ? 3 : 4;
                     final cellW = (c.maxWidth - (cols - 1) * 8) / cols;
-                    return Wrap(
-                      spacing: 8, runSpacing: 8,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final w in navItems) SizedBox(width: cellW, child: w),
-                        for (final w in filterItems) SizedBox(width: cellW, child: w),
-                        for (final w in tagItems) SizedBox(width: cellW, child: w),
+                        Row(
+                          children: [
+                            for (var i = 0; i < navItems.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 8),
+                              Expanded(child: navItems[i]),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: [for (final w in filterItems) SizedBox(width: cellW, child: w)],
+                        ),
+                        if (tagItems.isNotEmpty) const SizedBox(height: 8),
+                        if (tagItems.isNotEmpty)
+                          Wrap(
+                            spacing: 8, runSpacing: 8,
+                            children: [for (final w in tagItems) SizedBox(width: cellW, child: w)],
+                          ),
                       ],
                     );
                   },
@@ -231,12 +267,23 @@ class HomePage extends ConsumerWidget {
                     onRefresh: () async => ref.invalidate(manualListProvider),
                     child: ListView.builder(
                       itemCount: list.length,
-                      itemBuilder: (_, i) => ManualCard(
-                        manual: list[i],
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: list[i].id)),
+                      itemBuilder: (_, i) => Dismissible(
+                        key: ValueKey(list[i].id),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) => confirmDeleteManual(list[i]),
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 28),
+                          color: Theme.of(context).colorScheme.error,
+                          child: const Icon(Icons.delete, color: Colors.white),
                         ),
-                        onToggleFavorite: () => toggleFav(list[i]),
+                        child: ManualCard(
+                          manual: list[i],
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: list[i].id)),
+                          ),
+                          onToggleFavorite: () => toggleFav(list[i]),
+                        ),
                       ),
                     ),
                   );

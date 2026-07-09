@@ -14,12 +14,14 @@
 | 模块 | 能力 |
 |------|------|
 | 📸 拍照采集 | 相机拍摄 / 相册多选，三层数据存储（原图 / 编辑后 / 缩略图） |
-| ✂️ 图片编辑 | 裁剪、旋转、调色（亮度/对比/饱和度）、标注、马赛克 |
+| ✂️ 图片编辑 | 旋转、调色（亮度/对比/饱和度）；裁剪/标注/马赛克按钮已加入工具栏，渲染逻辑待接入 |
 | 🎤 语音转文字 | 长按录音转文字，适配现场无法打字的场景（ASR 可替换为云端） |
 | 📑 模板复用 | 内置电力巡检、设备安装等工作流模板，一键创建 |
 | 📄 PDF 导出 | 图文并茂的 PDF，系统分享发送 |
-| 🗂 手册管理 | 搜索、筛选（最近/收藏/模板/未完成）、收藏、拖拽排序 |
-| ✅ 进度跟踪 | 步骤完成态、整体完成进度 |
+| 🏷 标签管理 | 手册多标签分类，标签筛选 |
+| 📤 导入导出 | 手册 JSON 导出/导入，便于备份和跨设备迁移 |
+| 🗂 手册管理 | 搜索、筛选（最近/收藏/未完成）、收藏、排序（更新/创建/标题/完成度）、滑动删除 |
+| ✅ 进度跟踪 | 步骤完成态、整体完成进度、步骤拖拽排序 |
 | 💾 本地持久化 | drift (SQLite) 离线存储，无需联网 |
 
 ## 📱 平台支持
@@ -30,7 +32,7 @@
 
 ## 🏗 架构
 
-Clean Architecture lite，三层 + 七个 feature 模块：
+Clean Architecture lite，三层 + 八个 feature 模块：
 
 ```
 lib/
@@ -43,10 +45,12 @@ lib/
 ├── features/
 │   ├── manual/               # 手册核心 (domain/data/presentation)
 │   ├── capture/              # 图片采集抽象 (相机/相册)
-│   ├── editor/               # 图片编辑器 (5 工具栏)
+│   ├── editor/               # 图片编辑器 (5 工具栏，裁剪/标注/马赛克待接入渲染)
 │   ├── voice/                # 语音转文字 (ASR + hold-to-record)
 │   ├── export/               # PDF 导出
-│   └── template/             # 预置模板
+│   ├── import_export/        # 手册 JSON 导出/导入
+│   ├── tag/                  # 标签 CRUD + 手册打标签
+│   └── template/             # 内置 + 用户自定义模板
 └── shared/
     ├── providers.dart        # Riverpod providers
     └── widgets/              # EmptyState, SnapToast, SnapSheet, SnapIconButton
@@ -108,6 +112,8 @@ flutter analyze       # 静态分析
 | 图片采集 | image_picker |
 | 录音 | record |
 | PDF | pdf + printing |
+| 分享 | share_plus |
+| 文件选择 | file_picker（导入 JSON） |
 | 路由 | Navigator 1.0 |
 
 ## 📦 CI/CD
