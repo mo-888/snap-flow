@@ -3,21 +3,38 @@ import 'package:flutter/material.dart' hide Step;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../core/theme.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/snap_toast.dart';
 import '../../import_export/presentation/export_dialog.dart';
 import '../../import_export/presentation/import_dialog.dart';
 import '../../tag/presentation/tag_manager_page.dart';
-import '../../tag/presentation/widgets/tag_filter_sheet.dart';
 import '../../template/presentation/template_manager_page.dart';
 import '../../template/template_sheet.dart';
 import '../domain/entities.dart';
 import 'manual_detail_page.dart';
+import 'widgets/filter_grid_button.dart';
 import 'widgets/manual_card.dart';
 
 enum ManualFilter { all, recent, favorites, incomplete }
+
+IconData _iconFor(ManualFilter f) {
+  switch (f) {
+    case ManualFilter.all: return Icons.menu_book;
+    case ManualFilter.recent: return Icons.schedule;
+    case ManualFilter.favorites: return Icons.star;
+    case ManualFilter.incomplete: return Icons.check_box_outline_blank;
+  }
+}
+
+String _labelFor(ManualFilter f) {
+  switch (f) {
+    case ManualFilter.all: return '全部';
+    case ManualFilter.recent: return '最近';
+    case ManualFilter.favorites: return '收藏 ⭐';
+    case ManualFilter.incomplete: return '未完成';
+  }
+}
 
 final manualFilterProvider = StateProvider<ManualFilter>((_) => ManualFilter.all);
 final manualSearchProvider = StateProvider<String>((_) => '');
@@ -84,6 +101,7 @@ class HomePage extends ConsumerWidget {
     final filter = ref.watch(manualFilterProvider);
     final selectedTagIds = ref.watch(selectedTagIdsProvider);
     final sort = ref.watch(manualSortProvider);
+    final asyncTags = ref.watch(tagsProvider);
 
     Future<void> toggleFav(Manual m) async {
       final repo = await ref.read(manualRepositoryProvider.future);
@@ -141,38 +159,59 @@ class HomePage extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _Chip(label: '全部', value: ManualFilter.all, current: filter),
-                  _Chip(label: '最近', value: ManualFilter.recent, current: filter),
-                  _Chip(label: '收藏 ⭐', value: ManualFilter.favorites, current: filter),
-                  _Chip(label: '未完成', value: ManualFilter.incomplete, current: filter),
-                  ActionChip(
-                    avatar: const Icon(Icons.dashboard_customize, size: 16),
-                    label: const Text('模板'),
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const TemplateManagerPage(),
-                    )),
-                  ),
-                  ActionChip(
-                    avatar: const Icon(Icons.label_outline, size: 16),
-                    label: Text(selectedTagIds.isEmpty ? '标签' : '标签 (${selectedTagIds.length})'),
-                    onPressed: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const TagFilterSheet(),
-                    ),
-                  ),
-                  ActionChip(
-                    avatar: const Icon(Icons.label, size: 16, color: Colors.orange),
-                    label: const Text('管理'),
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const TagManagerPage(),
-                    )),
-                  ),
-                ],
+              child: asyncTags.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (tags) {
+                  final navItems = <Widget>[
+                    FilterGridButton(icon: Icons.dashboard_customize, label: '模板管理',
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const TemplateManagerPage()))),
+                    FilterGridButton(icon: Icons.label, label: '标签管理',
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const TagManagerPage()))),
+                  ];
+                  final filterItems = <Widget>[
+                    for (final f in ManualFilter.values)
+                      FilterGridButton(
+                        icon: _iconFor(f),
+                        label: _labelFor(f),
+                        selected: filter == f,
+                        onTap: () => ref.read(manualFilterProvider.notifier).state = f,
+                      ),
+                  ];
+                  final tagItems = <Widget>[
+                    for (final t in tags)
+                      FilterGridButton(
+                        icon: Icons.label,
+                        label: t.name,
+                        selected: selectedTagIds.contains(t.id),
+                        onTap: () {
+                          final next = {...selectedTagIds};
+                          if (next.contains(t.id)) {
+                            next.remove(t.id);
+                          } else {
+                            next.add(t.id);
+                          }
+                          ref.read(selectedTagIdsProvider.notifier).state = next;
+                        },
+                      ),
+                  ];
+                  return LayoutBuilder(
+                    builder: (_, c) {
+                      final cols = c.maxWidth < 360 ? 3 : 4;
+                      final cellW = (c.maxWidth - (cols - 1) * 8) / cols;
+                      return Wrap(
+                        spacing: 8, runSpacing: 8,
+                        children: [
+                          for (final w in navItems) SizedBox(width: cellW, child: w),
+                          for (final w in filterItems) SizedBox(width: cellW, child: w),
+                          for (final w in tagItems) SizedBox(width: cellW, child: w),
+                        ],
+                      );
+                    },
+                  );
+                },
               ),
             ),
             Expanded(
@@ -226,33 +265,6 @@ Future<void> _showExport(BuildContext context, WidgetRef ref) async {
     [XFile(file.path)],
     subject: 'SnapFlow 手册导出（${result.count} 本）',
   );
-}
-
-class _Chip extends ConsumerWidget {
-  final String label;
-  final ManualFilter value;
-  final ManualFilter current;
-  const _Chip({required this.label, required this.value, required this.current});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selected = value == current;
-    final c = Theme.of(context).colorScheme;
-    final sf = Theme.of(context).extension<SnapFlowColors>();
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      labelStyle: TextStyle(
-        color: selected ? Colors.white : null,
-        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-      ),
-      selectedColor: c.primary,
-      backgroundColor: sf?.muted ?? c.surfaceContainerHighest,
-      side: BorderSide(color: selected ? Colors.transparent : (sf?.border ?? c.outlineVariant)),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      onSelected: (_) => ref.read(manualFilterProvider.notifier).state = value,
-    );
-  }
 }
 
 class _SortSheet extends StatelessWidget {

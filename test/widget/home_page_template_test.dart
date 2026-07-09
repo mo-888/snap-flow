@@ -110,18 +110,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2500));
   });
 
-  // Spec: "全部、最近等按钮布局非常不协调" — chip 应在合理高度内、可点。
+  // Spec: "全部、最近等按钮布局非常不协调" — 网格按钮应在合理高度内、可点。
   testWidgets('筛选 chip 全部可见且可点击', (tester) async {
     final repo = _RecordingRepo(<Manual>[]);
     await tester.pumpWidget(_wrap(const HomePage(), repo: repo));
     await tester.pump();
 
-    // 4 个筛选 chip + 模板/标签管理 ActionChip 都应可见
+    // 4 个筛选按钮 + 模板/标签管理按钮都应可见
     expect(find.text('全部'), findsOneWidget);
     expect(find.text('最近'), findsOneWidget);
     expect(find.text('收藏 ⭐'), findsOneWidget);
     expect(find.text('未完成'), findsOneWidget);
-    expect(find.text('模板'), findsOneWidget, reason: '模板管理 ActionChip');
+    expect(find.text('模板管理'), findsOneWidget, reason: '模板管理按钮');
 
     // 点击"收藏 ⭐"应切换 filter（不崩溃）
     await tester.tap(find.text('收藏 ⭐'));
