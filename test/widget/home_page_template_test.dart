@@ -72,23 +72,16 @@ void main() {
     await tester.pump(); // settle provider
     await tester.pump(const Duration(milliseconds: 50));
 
-    // 1. Tap main FAB → 展开菜单
+    // 1. Tap main FAB → 直接打开统一的模板选择 sheet
     expect(find.byIcon(Icons.add), findsOneWidget);
     await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-    expect(find.text('从模板新建'), findsOneWidget);
-
-    // 2. Tap "从模板新建" → 打开模板 sheet
-    await tester.tap(find.text('从模板新建'));
-    await tester.pump(); // 触发 setState 关闭菜单
-    await tester.pump(const Duration(milliseconds: 50)); // postFrameCallback 触发
     await tester.pumpAndSettle(); // 等 sheet 动画完成
 
-    // 3. Sheet 应出现 "电力巡检" 模板（来自 builtin_templates.json）
+    // 2. Sheet 应出现 "电力巡检" 模板（来自 builtin_templates.json）
     expect(find.text('电力巡检'), findsOneWidget,
         reason: '模板 sheet 应显示内置模板');
 
-    // 4. Tap "电力巡检" ListTile → 触发 saveManual + navigate
+    // 3. Tap "电力巡检" ListTile → 触发 saveManual + navigate
     final tplTile = find.widgetWithText(ListTile, '电力巡检');
     expect(tplTile, findsOneWidget);
     await tester.tap(tplTile, warnIfMissed: false);
@@ -97,12 +90,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    // 5. Assert: 一个新 manual 被保存，5 步（电力巡检模板有 5 步）
+    // 4. Assert: 一个新 manual 被保存，5 步（电力巡检模板有 5 步）
     expect(repo.saved.length, 1, reason: 'saveManual 应被调用一次');
     expect(repo.saved.first.title, '电力巡检');
     expect(repo.saved.first.steps.length, 5);
 
-    // 6. Assert: navigation 到 ManualDetailPage
+    // 5. Assert: navigation 到 ManualDetailPage
     expect(find.byType(ManualDetailPage), findsOneWidget,
         reason: '应跳转到手册详情页');
 

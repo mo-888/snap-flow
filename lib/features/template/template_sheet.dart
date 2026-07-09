@@ -5,9 +5,19 @@ import '../../shared/widgets/bottom_sheet.dart';
 import '../manual/domain/entities.dart';
 import 'template_service.dart';
 
-/// 显示模板选择 sheet，返回选中的模板（null 表示取消）。
-/// 用返回值代替 onPick 回调，避免 context 生命周期耦合。
-Future<Template?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) async {
+enum TemplateChoice { blank, quickCapture, fromTemplate }
+
+class TemplatePickResult {
+  final TemplateChoice choice;
+  final Template? template;
+  const TemplatePickResult._(this.choice, this.template);
+  factory TemplatePickResult.blank() => const TemplatePickResult._(TemplateChoice.blank, null);
+  factory TemplatePickResult.quickCapture() => const TemplatePickResult._(TemplateChoice.quickCapture, null);
+  factory TemplatePickResult.fromTemplate(Template t) => TemplatePickResult._(TemplateChoice.fromTemplate, t);
+}
+
+/// 显示统一的"新建手册"选择 sheet：空白手册 / 快速拍照 / 从模板新建。
+Future<TemplatePickResult?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) async {
   if (ref == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('请在 Riverpod 作用域内调用')),
@@ -27,21 +37,35 @@ Future<Template?> showTemplateSheet(BuildContext context, {WidgetRef? ref}) asyn
     return null;
   }
   if (!context.mounted) return null;
-  return SnapSheet.show<Template>(
+  return SnapSheet.show<TemplatePickResult>(
     context,
-    title: '选择模板',
-    subtitle: '基于模板快速创建手册',
+    title: '新建手册',
+    subtitle: '从模板快速创建或拍下当前画面',
     child: Material(
-      // 单独包 Material，ListTile ink splashes 才能正确显示（不被外层 surface 颜色覆盖）
       color: Colors.transparent,
       child: ListView(
         shrinkWrap: true,
-        children: templates.map((t) => ListTile(
-          leading: Icon(t.isBuiltin ? Icons.dashboard_customize : Icons.bookmark_added),
-          title: Text(t.name),
-          subtitle: Text('${t.steps.length} 步 · ${t.description}'),
-          onTap: () => Navigator.of(context).pop(t),
-        )).toList(),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.note_add),
+            title: const Text('空白手册'),
+            subtitle: const Text('先起个标题，后面随时加步骤'),
+            onTap: () => Navigator.of(context).pop(TemplatePickResult.blank()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_camera),
+            title: const Text('快速拍照'),
+            subtitle: const Text('拍一张立即记录'),
+            onTap: () => Navigator.of(context).pop(TemplatePickResult.quickCapture()),
+          ),
+          const Divider(height: 1),
+          for (final t in templates) ListTile(
+            leading: Icon(t.isBuiltin ? Icons.dashboard_customize : Icons.bookmark_added),
+            title: Text(t.name),
+            subtitle: Text('${t.steps.length} 步 · ${t.description}'),
+            onTap: () => Navigator.of(context).pop(TemplatePickResult.fromTemplate(t)),
+          ),
+        ],
       ),
     ),
   );

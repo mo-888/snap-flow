@@ -10,7 +10,8 @@ import '../../import_export/presentation/export_dialog.dart';
 import '../../import_export/presentation/import_dialog.dart';
 import '../../tag/presentation/tag_manager_page.dart';
 import '../../template/presentation/template_manager_page.dart';
-import '../../template/template_sheet.dart';
+import '../../template/template_sheet.dart' show showTemplateSheet, TemplateChoice, TemplateStepAdapter;
+import '../../template/template_service.dart' show Template;
 import '../domain/entities.dart';
 import 'manual_detail_page.dart';
 import 'widgets/filter_grid_button.dart';
@@ -245,7 +246,7 @@ class HomePage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: const _FabMenu(),
+      floatingActionButton: const _Fab(),
     );
   }
 }
@@ -308,177 +309,101 @@ class _SortSheet extends StatelessWidget {
   }
 }
 
-/// FAB 菜单：主 FAB + 展开的"空白手册"/"快速拍照"/"从模板新建"。
-class _FabMenu extends ConsumerStatefulWidget {
-  const _FabMenu();
-  @override
-  ConsumerState<_FabMenu> createState() => _FabMenuState();
-}
-
-class _FabMenuState extends ConsumerState<_FabMenu> {
-  bool _open = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        if (_open)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _open = false),
-            ),
-          ),
-        if (_open) ...[
-          _FabItem(label: '空白手册', icon: Icons.note_add, onTap: () => _closeAnd(_createBlank)),
-          const SizedBox(height: 8),
-          _FabItem(label: '快速拍照', icon: Icons.photo_camera, onTap: () => _closeAnd(_quickCapture)),
-          const SizedBox(height: 8),
-          _FabItem(label: '从模板新建', icon: Icons.dashboard_customize, onTap: () => _closeAnd(_newFromTemplate)),
-          const SizedBox(height: 8),
-        ],
-        FloatingActionButton(
-          heroTag: 'main-fab',
-          onPressed: () => setState(() => _open = !_open),
-          child: Icon(_open ? Icons.close : Icons.add),
-        ),
-      ],
-    );
-  }
-
-  void _closeAnd(Future<void> Function() action) {
-    setState(() => _open = false);
-    WidgetsBinding.instance.addPostFrameCallback((_) => action());
-  }
-
-  Future<void> _createBlank() async {
-    final ctl = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('新建空白手册'),
-        content: TextField(
-          controller: ctl,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '手册标题'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('取消')),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(ctl.text.trim()),
-            child: const Text('创建'),
-          ),
-        ],
+Future<void> _createBlank(BuildContext context, WidgetRef ref) async {
+  final ctl = TextEditingController();
+  final name = await showDialog<String>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('新建空白手册'),
+      content: TextField(
+        controller: ctl, autofocus: true,
+        decoration: const InputDecoration(hintText: '手册标题'),
       ),
-    );
-    if (!mounted) return;
-    if (name == null || name.isEmpty) {
-      SnapToast.show(context, '已取消', success: false);
-      return;
-    }
-    final repo = await ref.read(manualRepositoryProvider.future);
-    final now = DateTime.now();
-    final m = Manual(
-      id: 'm-${now.millisecondsSinceEpoch}',
-      title: name,
-      coverImagePath: null,
-      isFavorite: false,
-      createdAt: now,
-      updatedAt: now,
-      steps: const [],
-    );
-    await repo.saveManual(m);
-    ref.invalidate(manualListProvider);
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)),
-    );
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('取消')),
+        FilledButton(onPressed: () => Navigator.of(context).pop(ctl.text.trim()), child: const Text('创建')),
+      ],
+    ),
+  );
+  if (!context.mounted) return;
+  if (name == null || name.isEmpty) {
+    SnapToast.show(context, '已取消', success: false);
+    return;
   }
-
-  Future<void> _quickCapture() async {
-    final repo = await ref.read(manualRepositoryProvider.future);
-    final now = DateTime.now();
-    final newStep = Step(
-      id: 's-${now.millisecondsSinceEpoch}',
-      order: 100,
-      title: null, note: '', completed: false, images: const [], optionalFields: const {},
-      createdAt: now,
-    );
-    final m = Manual(
-      id: 'm-${now.millisecondsSinceEpoch}',
-      title: '新手册',
-      coverImagePath: null,
-      isFavorite: false,
-      createdAt: now, updatedAt: now,
-      steps: [newStep],
-    );
-    await repo.saveManual(m);
-    ref.invalidate(manualListProvider);
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id, autoCaptureStepId: newStep.id)),
-    );
-  }
-
-  Future<void> _newFromTemplate() async {
-    final t = await showTemplateSheet(context, ref: ref);
-    if (t == null || !mounted) return;
-    final repo = await ref.read(manualRepositoryProvider.future);
-    final now = DateTime.now();
-    final steps = [
-      for (var i = 0; i < t.steps.length; i++)
-        TemplateStepAdapter.fromTemplateStep(t.steps[i], i, now.millisecondsSinceEpoch)
-    ];
-    final m = Manual(
-      id: 'm-${now.millisecondsSinceEpoch}',
-      title: t.name,
-      coverImagePath: null,
-      isFavorite: false,
-      createdAt: now, updatedAt: now,
-      steps: steps,
-    );
-    await repo.saveManual(m);
-    ref.invalidate(manualListProvider);
-    if (!mounted) return;
-    SnapToast.show(context, '已基于"${t.name}"创建', success: true);
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)),
-    );
-  }
+  final repo = await ref.read(manualRepositoryProvider.future);
+  final now = DateTime.now();
+  final m = Manual(
+    id: 'm-${now.millisecondsSinceEpoch}',
+    title: name, coverImagePath: null, isFavorite: false,
+    createdAt: now, updatedAt: now, steps: const [],
+  );
+  await repo.saveManual(m);
+  ref.invalidate(manualListProvider);
+  if (!context.mounted) return;
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)));
 }
 
-class _FabItem extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _FabItem({required this.label, required this.icon, required this.onTap});
+Future<void> _quickCapture(BuildContext context, WidgetRef ref) async {
+  final repo = await ref.read(manualRepositoryProvider.future);
+  final now = DateTime.now();
+  final newStep = Step(
+    id: 's-${now.millisecondsSinceEpoch}', order: 100,
+    title: null, note: '', completed: false, images: const [], optionalFields: const {},
+    createdAt: now,
+  );
+  final m = Manual(
+    id: 'm-${now.millisecondsSinceEpoch}',
+    title: '新手册', coverImagePath: null, isFavorite: false,
+    createdAt: now, updatedAt: now, steps: [newStep],
+  );
+  await repo.saveManual(m);
+  ref.invalidate(manualListProvider);
+  if (!context.mounted) return;
+  Navigator.of(context).push(MaterialPageRoute(
+    builder: (_) => ManualDetailPage(manualId: m.id, autoCaptureStepId: newStep.id)));
+}
+
+Future<void> _newFromTemplate(BuildContext context, WidgetRef ref, Template t) async {
+  final repo = await ref.read(manualRepositoryProvider.future);
+  final now = DateTime.now();
+  final steps = [
+    for (var i = 0; i < t.steps.length; i++)
+      TemplateStepAdapter.fromTemplateStep(t.steps[i], i, now.millisecondsSinceEpoch)
+  ];
+  final m = Manual(
+    id: 'm-${now.millisecondsSinceEpoch}',
+    title: t.name, coverImagePath: null, isFavorite: false,
+    createdAt: now, updatedAt: now, steps: steps,
+  );
+  await repo.saveManual(m);
+  ref.invalidate(manualListProvider);
+  if (!context.mounted) return;
+  SnapToast.show(context, '已基于"${t.name}"创建', success: true);
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => ManualDetailPage(manualId: m.id)));
+}
+
+class _Fab extends ConsumerWidget {
+  const _Fab();
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final pick = await showTemplateSheet(context, ref: ref);
+    if (pick == null || !context.mounted) return;
+    switch (pick.choice) {
+      case TemplateChoice.blank:
+        return _createBlank(context, ref);
+      case TemplateChoice.quickCapture:
+        return _quickCapture(context, ref);
+      case TemplateChoice.fromTemplate:
+        if (pick.template != null) return _newFromTemplate(context, ref, pick.template!);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Material(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          elevation: 4,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        FloatingActionButton.small(
-          heroTag: 'fab-$label',
-          onPressed: onTap,
-          child: Icon(icon),
-        ),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FloatingActionButton(
+      heroTag: 'main-fab',
+      onPressed: () => _open(context, ref),
+      child: const Icon(Icons.add),
     );
   }
 }
