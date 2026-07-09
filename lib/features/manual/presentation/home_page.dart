@@ -159,35 +159,34 @@ class HomePage extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: asyncTags.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (tags) {
-                  final navItems = <Widget>[
-                    FilterGridButton(icon: Icons.dashboard_customize, label: '模板管理',
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const TemplateManagerPage()))),
-                    FilterGridButton(icon: Icons.label, label: '标签管理',
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const TagManagerPage()))),
-                  ];
-                  final filterItems = <Widget>[
-                    for (final f in ManualFilter.values)
-                      FilterGridButton(
-                        icon: _iconFor(f),
-                        label: _labelFor(f),
-                        selected: filter == f,
-                        onTap: () => ref.read(manualFilterProvider.notifier).state = f,
-                      ),
-                  ];
-                  final tagItems = <Widget>[
+              child: () {
+                final navItems = <Widget>[
+                  FilterGridButton(icon: Icons.dashboard_customize, label: '模板管理',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const TemplateManagerPage()))),
+                  FilterGridButton(icon: Icons.label, label: '标签管理',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const TagManagerPage()))),
+                ];
+                final filterItems = <Widget>[
+                  for (final f in ManualFilter.values)
+                    FilterGridButton(
+                      icon: _iconFor(f),
+                      label: _labelFor(f),
+                      selected: filter == f,
+                      onTap: () => ref.read(manualFilterProvider.notifier).state = f,
+                    ),
+                ];
+                final tagItems = asyncTags.maybeWhen(
+                  data: (tags) => <Widget>[
                     for (final t in tags)
                       FilterGridButton(
                         icon: Icons.label,
                         label: t.name,
                         selected: selectedTagIds.contains(t.id),
                         onTap: () {
-                          final next = {...selectedTagIds};
+                          final current = ref.read(selectedTagIdsProvider);
+                          final next = {...current};
                           if (next.contains(t.id)) {
                             next.remove(t.id);
                           } else {
@@ -196,23 +195,24 @@ class HomePage extends ConsumerWidget {
                           ref.read(selectedTagIdsProvider.notifier).state = next;
                         },
                       ),
-                  ];
-                  return LayoutBuilder(
-                    builder: (_, c) {
-                      final cols = c.maxWidth < 360 ? 3 : 4;
-                      final cellW = (c.maxWidth - (cols - 1) * 8) / cols;
-                      return Wrap(
-                        spacing: 8, runSpacing: 8,
-                        children: [
-                          for (final w in navItems) SizedBox(width: cellW, child: w),
-                          for (final w in filterItems) SizedBox(width: cellW, child: w),
-                          for (final w in tagItems) SizedBox(width: cellW, child: w),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
+                  ],
+                  orElse: () => <Widget>[],
+                );
+                return LayoutBuilder(
+                  builder: (_, c) {
+                    final cols = c.maxWidth < 360 ? 3 : 4;
+                    final cellW = (c.maxWidth - (cols - 1) * 8) / cols;
+                    return Wrap(
+                      spacing: 8, runSpacing: 8,
+                      children: [
+                        for (final w in navItems) SizedBox(width: cellW, child: w),
+                        for (final w in filterItems) SizedBox(width: cellW, child: w),
+                        for (final w in tagItems) SizedBox(width: cellW, child: w),
+                      ],
+                    );
+                  },
+                );
+              }(),
             ),
             Expanded(
               child: filtered.when(
