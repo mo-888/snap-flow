@@ -241,9 +241,13 @@ class _ManualDetailPageState extends ConsumerState<ManualDetailPage> {
       for (final img in s.images)
         img.copyWith(id: _uuid.v4()),
     ];
+    final sorted = [...m.steps]..sort((a, b) => a.order.compareTo(b.order));
+    final idx = sorted.indexWhere((st) => st.id == s.id);
+    final nextOrder = (idx + 1 < sorted.length) ? sorted[idx + 1].order : null;
+    final newOrder = nextOrder == null ? s.order + 100 : ((s.order + nextOrder) / 2).floor();
     final dup = s.copyWith(
-      id: 's-${now.millisecondsSinceEpoch}-dup',
-      order: s.order + 1,
+      id: 's-${_uuid.v4()}',
+      order: newOrder,
       images: newImages,
       completed: false,
       completedAt: null,
