@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../manual/domain/entities.dart';
@@ -25,8 +26,10 @@ class PdfExporter {
   Future<List<int>> exportToBytes(Manual manual) async {
     final chineseFont = await (fontProvider ?? _loadChineseFont)();
     final theme = pw.ThemeData.withFont(base: chineseFont);
-
     final doc = pw.Document(theme: theme);
+
+    String fmt(DateTime? dt) =>
+        dt == null ? '—' : DateFormat('yyyy-MM-dd HH:mm').format(dt);
 
     final stepWidgets = <pw.Widget>[];
     for (final s in manual.steps) {
@@ -55,6 +58,23 @@ class PdfExporter {
               if (s.note.isNotEmpty) pw.SizedBox(height: 4),
               if (s.note.isNotEmpty)
                 pw.Text(s.note, style: pw.TextStyle(font: chineseFont, fontSize: 11)),
+              pw.SizedBox(height: 6),
+              pw.Text('创建于 ${fmt(s.createdAt)} · 完成于 ${fmt(s.completedAt)}',
+                  style: pw.TextStyle(font: chineseFont, fontSize: 9, color: PdfColors.grey600)),
+              if (s.optionalFields.isNotEmpty) pw.SizedBox(height: 6),
+              for (final e in s.optionalFields.entries)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(top: 2),
+                  child: pw.Row(children: [
+                    pw.Container(
+                      width: 80,
+                      child: pw.Text(e.key,
+                          style: pw.TextStyle(font: chineseFont, fontSize: 10, color: PdfColors.grey700)),
+                    ),
+                    pw.Text(e.value.isEmpty ? '—' : e.value,
+                        style: pw.TextStyle(font: chineseFont, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                ),
               ...imageWidgets,
             ],
           ),
@@ -72,6 +92,36 @@ class PdfExporter {
             child: pw.Text(manual.title.isEmpty ? '未命名手册' : manual.title,
                 style: pw.TextStyle(font: chineseFont, fontSize: 22, fontWeight: pw.FontWeight.bold)),
           ),
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 4),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('创建于 ${fmt(manual.createdAt)}',
+                    style: pw.TextStyle(font: chineseFont, fontSize: 10, color: PdfColors.grey700)),
+                pw.SizedBox(width: 12),
+                pw.Text('更新于 ${fmt(manual.updatedAt)}',
+                    style: pw.TextStyle(font: chineseFont, fontSize: 10, color: PdfColors.grey700)),
+              ],
+            ),
+          ),
+          if (manual.tags.isNotEmpty) pw.SizedBox(height: 6),
+          if (manual.tags.isNotEmpty)
+            pw.Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: manual.tags
+                  .map((t) => pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColors.grey200,
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
+                        child: pw.Text(t.name,
+                            style: pw.TextStyle(font: chineseFont, fontSize: 10)),
+                      ))
+                  .toList(),
+            ),
           pw.SizedBox(height: 12),
           ...stepWidgets,
         ],
